@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Transporte CHMD</string>
+    <string name="spref">mx.edu.chmd.transportechmd.spref</string>
+</resources>

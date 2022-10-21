@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/action_back"
+        android:icon="@drawable/left_arrow"
+        app:showAsAction="always"
+        android:title="Back">
+    </item>
+
+    <item
+        android:id="@+id/action_subir"
+        android:icon="@drawable/subir"
+        android:iconTint="@color/white"
+        app:showAsAction="always"
+        android:title="Back">
+    </item>
+
+    <item
+        android:id="@+id/action_msj"
+        android:icon="@drawable/editar"
+        android:iconTint="@color/white"
+        app:showAsAction="always"
+        android:title="Back">
+    </item>
+
+    <!--
+    <item
+        android:id="@+id/action_select_all"
+        android:icon="@drawable/todos"
+        app:showAsAction="always"
+        android:title="Todos">
+    </item>
+    <item
+        android:id="@+id/action_logout"
+        android:icon="@drawable/logout"
+        app:showAsAction="always"
+        android:title="Cerrar">
+    </item>-->
+</menu>

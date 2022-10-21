@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".MainActivity">
+
+    <include
+        android:id="@+id/tool_bar"
+        layout="@layout/tool_bar"
+        android:layout_width="fill_parent"
+        android:layout_height="48dp"></include>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Transporte CHMD - Iniciar Sesión"
+            android:textColor="@color/textoMasOscuro"
+            android:gravity="center_horizontal"
+            android:textSize="28dp"
+            android:id="@+id/lblHeader"
+            android:layout_marginTop="16dp"
+            android:layout_centerHorizontal="true"/>
+
+
+        <EditText
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_below="@id/lblHeader"
+            android:layout_marginTop="24dp"
+            android:layout_marginLeft="36dp"
+            android:layout_marginRight="36dp"
+            android:background="@drawable/bg_cuadros_texto2"
+            android:padding="12dp"
+            android:hint="Correo electrónico"
+            android:inputType="textEmailAddress"
+        android:id="@+id/txtEmail"/>
+        <EditText
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_below="@id/txtEmail"
+            android:layout_marginTop="24dp"
+            android:layout_marginLeft="36dp"
+            android:layout_marginRight="36dp"
+            android:background="@drawable/bg_cuadros_texto2"
+            android:padding="12dp"
+            android:hint="Clave"
+            android:inputType="textPassword"
+            android:id="@+id/txtPassword"/>
+
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Descargando..."
+                android:layout_below="@id/txtPassword"
+                android:layout_centerHorizontal="true"
+                android:gravity="center_horizontal"
+                android:layout_marginTop="12dp"
+                android:visibility="invisible"
+                android:textColor="@color/rojoInasistencia"
+                android:id="@+id/lblEstado"/>
+
+
+        <Button
+            android:id="@+id/btnLogin"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_below="@id/txtPassword"
+            android:layout_alignParentBottom="true"
+            android:layout_marginLeft="36dp"
+            android:layout_marginTop="92dp"
+            android:layout_marginRight="36dp"
+            android:layout_marginBottom="24dp"
+            android:background="@drawable/boton_redondeado_4"
+            android:text="Iniciar Sesión"
+            android:textAllCaps="false"
+            android:textColor="@android:color/white"
+            app:backgroundTint="@null" />
+
+
+
+
+    </RelativeLayout>
+    </ScrollView>
+</LinearLayout>
+
+
