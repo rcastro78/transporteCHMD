@@ -1,14 +1,16 @@
 package mx.edu.chmd.transportechmd
 
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.graphics.Typeface
-import androidx.lifecycle.ViewModelProvider
-import androidx.appcompat.app.AppCompatActivity
+import android.net.ConnectivityManager
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.ViewModelProvider
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -20,13 +22,12 @@ import mx.edu.chmd.transportechmd.model.Asistencia
 import mx.edu.chmd.transportechmd.model.Ruta
 import mx.edu.chmd.transportechmd.networking.ITransporte
 import mx.edu.chmd.transportechmd.networking.TransporteAPI
-import mx.edu.chmd.transportechmd.viewmodel.AsistenciaViewModel
+import mx.edu.chmd.transportechmd.servicios.NetworkChangeReceiver
 import mx.edu.chmd.transportechmd.viewmodel.LoginViewModel
 import mx.edu.chmd.transportechmd.viewmodel.RutaViewModel
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import java.util.*
 
 class MainActivity : AppCompatActivity() {
     var email:String=""
@@ -35,6 +36,20 @@ class MainActivity : AppCompatActivity() {
     private lateinit var rutaViewModel: RutaViewModel
     private var sharedPreferences: SharedPreferences? = null
     private lateinit var iTransporteService: ITransporte
+    private var networkChangeReceiver: NetworkChangeReceiver = NetworkChangeReceiver()
+
+    override fun onStart() {
+        super.onStart()
+        val filter = IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
+        registerReceiver(networkChangeReceiver, filter)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        unregisterReceiver(networkChangeReceiver)
+    }
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)

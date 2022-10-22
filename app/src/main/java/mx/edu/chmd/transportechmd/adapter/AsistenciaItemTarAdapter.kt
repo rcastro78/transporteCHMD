@@ -122,68 +122,64 @@ class AsistenciaItemTarAdapter(var lstAsistencia:ArrayList<Asistencia>? = null, 
         holder.imgFotoEstudiante.setOnClickListener {
             //La ruta va comenzando, recogiendo niños en sus casas
            // if(items.estatus=="0"){
+            //de amarillo a blanco
+            if(items.ascenso_t=="1"){
+                if(c is AsistenciaTarActivity){
+
+                    AlertDialog.Builder(c)
+                        .setTitle("CHMD - Transporte")
+                        .setMessage(
+                            "¿Desea reiniciar la asistencia de ${items.nombre}?"
+                        )
+                        .setPositiveButton("Aceptar") { _, _ ->
+
+                            //enviar reinicio de la asistencia
+
+                            val editor:SharedPreferences.Editor = sharedPreferences!!.edit()
+                            editor.putString("idRuta",items.id_ruta_h)
+                            editor.apply()
+                            if(c is AsistenciaTarActivity){
+                                alumnoReiniciaAsistencia(items.id_alumno,items.id_ruta_h)
+                                if(hayConexion())
+                                    (c as AsistenciaTarActivity).reiniciarAsistencia(items.id_alumno,items.id_ruta_h)
+                                (c as AsistenciaTarActivity).recrear()
+
+                            }
+                            notifyDataSetChanged()
+
+
+
+                            (c as AsistenciaTarActivity).recrear()
+                            notifyDataSetChanged()
+                        }
+
+                        .setNegativeButton("Cancelar"){dialog,_->
+                            dialog.dismiss()
+                            notifyDataSetChanged()
+                        }
+
+                        .show()
+
+
+                }
+            }
+
+
+            //de blanco a amarillo
                 if(items.ascenso_t=="0"){
                     alumnoAsiste(items.id_alumno,items.id_ruta_h)
                     val editor:SharedPreferences.Editor = sharedPreferences!!.edit()
                     editor.putString("idRuta",items.id_ruta_h)
                     editor.apply()
                     if(c is AsistenciaTarActivity){
-                        (c as AsistenciaTarActivity).enviarAsistencia(items.id_alumno,items.id_ruta_h)
+                        if(hayConexion())
+                            (c as AsistenciaTarActivity).enviarAsistencia(items.id_alumno,items.id_ruta_h)
                         (c as AsistenciaTarActivity).recrear()
                     }
                         notifyDataSetChanged()
                 }
-                if(items.ascenso_t=="1"){
-
-                    if(c is AsistenciaTarActivity){
-
-                        AlertDialog.Builder(c)
-                            .setTitle("CHMD - Transporte")
-                            .setMessage(
-                                "¿Desea reiniciar la asistencia de ${items.nombre}?"
-                            )
-                            .setPositiveButton("Aceptar") { _, _ ->
-
-                                //enviar reinicio de la asistencia
-
-                                val editor:SharedPreferences.Editor = sharedPreferences!!.edit()
-                                editor.putString("idRuta",items.id_ruta_h)
-                                editor.apply()
-                                if(c is AsistenciaTarActivity){
-                                    alumnoReiniciaAsistencia(items.id_alumno,items.id_ruta_h)
-                                    (c as AsistenciaTarActivity).reiniciarAsistencia(items.id_alumno,items.id_ruta_h)
-                                    (c as AsistenciaTarActivity).recrear()
-
-                                }
-                                notifyDataSetChanged()
 
 
-
-                                (c as AsistenciaTarActivity).recrear()
-                                notifyDataSetChanged()
-                            }
-
-                            .setNegativeButton("Cancelar"){dialog,_->
-                                dialog.dismiss()
-                                notifyDataSetChanged()
-                            }
-
-                            .show()
-
-
-                    }
-
-
-
-
-
-
-                }
-            //}
-            //La ruta va terminando, bajando a los niños en la escuela
-            if(items.estatus=="1"){
-
-            }
         }
 
         var foto = items.foto.replace(
@@ -276,7 +272,14 @@ class AsistenciaItemTarAdapter(var lstAsistencia:ArrayList<Asistencia>? = null, 
         return if(netInfo != null && netInfo.isConnectedOrConnecting)
             1
         else
-            0
+            -1
+
+    }
+
+    fun hayConexion(): Boolean {
+        val cm = c!!.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val netInfo = cm.activeNetworkInfo
+        return netInfo != null && netInfo.isConnectedOrConnecting
 
     }
 }

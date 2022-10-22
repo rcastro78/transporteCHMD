@@ -110,4 +110,19 @@ interface ITransporte {
         @Field("token") token: String?
     ): Call<String?>?
 
+
+    //Procesar alumnos registrados offline
+    @GET("procesarAlumnosMan.php")
+    fun procesarMan(@Query("ruta_id") idRuta: String?,
+                    @Query("id_alumno") idAlumno: String?,
+                    @Query("ascenso") ascenso: String?,
+                    @Query("descenso") descenso: String?):Call<String>
+
+    @GET("procesarAlumnosTar.php")
+    fun procesarTar(@Query("ruta_id") idRuta: String?,
+                    @Query("id_alumno") idAlumno: String?,
+                    @Query("ascenso") ascenso: String?,
+                    @Query("descenso") descenso: String?):Call<String>
+
+
 }

@@ -126,7 +126,8 @@ class AsistenciaBajarItemAdapter(var lstAsistencia:ArrayList<Asistencia>? = null
 
                 if(c is AsistenciaManDropActivity){
                     (c as AsistenciaManDropActivity).recrear()
-                    (c as AsistenciaManDropActivity).enviarBajada(items.id_alumno,items.id_ruta_h)
+                    if(hayConexion())
+                        (c as AsistenciaManDropActivity).enviarBajada(items.id_alumno,items.id_ruta_h)
                 }
 
             }
@@ -140,7 +141,8 @@ class AsistenciaBajarItemAdapter(var lstAsistencia:ArrayList<Asistencia>? = null
 
                 if(c is AsistenciaManDropActivity){
                     (c as AsistenciaManDropActivity).recrear()
-                    (c as AsistenciaManDropActivity).enviarBajada(items.id_alumno,items.id_ruta_h)
+                    if(hayConexion())
+                        (c as AsistenciaManDropActivity).enviarBajada(items.id_alumno,items.id_ruta_h)
                 }
 
             }
@@ -163,7 +165,8 @@ class AsistenciaBajarItemAdapter(var lstAsistencia:ArrayList<Asistencia>? = null
                                 editor.apply()
                                 if(c is AsistenciaManDropActivity){
                                     alumnoReiniciaAsistencia(items.id_alumno,items.id_ruta_h)
-                                    (c as AsistenciaManDropActivity).reiniciarSubida(items.id_alumno,items.id_ruta_h)
+                                    if(hayConexion())
+                                        (c as AsistenciaManDropActivity).reiniciarSubida(items.id_alumno,items.id_ruta_h)
                                     (c as AsistenciaManDropActivity).recrear()
 
                                 }
@@ -282,7 +285,14 @@ class AsistenciaBajarItemAdapter(var lstAsistencia:ArrayList<Asistencia>? = null
         return if(netInfo != null && netInfo.isConnectedOrConnecting)
             1
         else
-            0
+            -1
+
+    }
+
+    fun hayConexion(): Boolean {
+        val cm = c!!.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val netInfo = cm.activeNetworkInfo
+        return netInfo != null && netInfo.isConnectedOrConnecting
 
     }
 

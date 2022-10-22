@@ -3,6 +3,7 @@ package mx.edu.chmd.transportechmd.turnot
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.graphics.Typeface
 import android.net.ConnectivityManager
@@ -23,6 +24,7 @@ import mx.edu.chmd.transportechmd.adapter.AsistenciaItemAdapter
 import mx.edu.chmd.transportechmd.adapter.AsistenciaItemTarAdapter
 import mx.edu.chmd.transportechmd.db.TransporteDB
 import mx.edu.chmd.transportechmd.model.Asistencia
+import mx.edu.chmd.transportechmd.servicios.NetworkChangeReceiver
 import mx.edu.chmd.transportechmd.viewmodel.AsistenciaViewModel
 import mx.edu.chmd.transportechmd.viewmodel.RutaViewModel
 class AsistenciaTarActivity : AppCompatActivity() {
@@ -31,6 +33,18 @@ class AsistenciaTarActivity : AppCompatActivity() {
     private lateinit var asistenciaViewModel: AsistenciaViewModel
     private lateinit var rutaViewModel: RutaViewModel
     private var sharedPreferences: SharedPreferences? = null
+    private var networkChangeReceiver: NetworkChangeReceiver = NetworkChangeReceiver()
+
+    override fun onStart() {
+        super.onStart()
+        val filter = IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
+        registerReceiver(networkChangeReceiver, filter)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        unregisterReceiver(networkChangeReceiver)
+    }
     var id_ruta:String=""
     public override fun onResume() {
         super.onResume()

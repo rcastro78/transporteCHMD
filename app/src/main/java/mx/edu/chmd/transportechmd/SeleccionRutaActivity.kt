@@ -1,6 +1,8 @@
 package mx.edu.chmd.transportechmd
 
+import android.content.IntentFilter
 import android.content.SharedPreferences
+import android.net.ConnectivityManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -12,10 +14,25 @@ import mx.edu.chmd.transportechmd.adapter.SeleccionRutaAdapter
 import mx.edu.chmd.transportechmd.db.RutaDAO
 import mx.edu.chmd.transportechmd.db.TransporteDB
 import mx.edu.chmd.transportechmd.model.Ruta
+import mx.edu.chmd.transportechmd.servicios.NetworkChangeReceiver
 
 class SeleccionRutaActivity : AppCompatActivity() {
     var lstRutas:ArrayList<Ruta> = ArrayList()
     private var sharedPreferences: SharedPreferences? = null
+    private var networkChangeReceiver: NetworkChangeReceiver = NetworkChangeReceiver()
+
+    override fun onStart() {
+        super.onStart()
+        val filter = IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
+        registerReceiver(networkChangeReceiver, filter)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        unregisterReceiver(networkChangeReceiver)
+    }
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_seleccion_ruta)

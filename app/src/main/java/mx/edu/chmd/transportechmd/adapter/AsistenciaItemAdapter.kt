@@ -79,10 +79,11 @@ class AsistenciaItemAdapter(var lstAsistencia:ArrayList<Asistencia>? = null, var
                     )
                     .setPositiveButton("Aceptar") { _, _ ->
                         alumnoNoAsiste(items.id_alumno,items.id_ruta_h)
-                        (c as AsistenciaManActivity).enviarInasistencia(
-                            items.id_alumno,
-                            items.id_ruta_h
-                        )
+                        if(hayConexion())
+                            (c as AsistenciaManActivity).enviarInasistencia(
+                                items.id_alumno,
+                                items.id_ruta_h
+                            )
                         (c as AsistenciaManActivity).recrear()
                         notifyDataSetChanged()
                     }
@@ -116,43 +117,81 @@ class AsistenciaItemAdapter(var lstAsistencia:ArrayList<Asistencia>? = null, var
         holder.imgFotoEstudiante.setOnClickListener {
             //La ruta va comenzando, recogiendo niños en sus casas
            // if(items.estatus=="0"){
+            //de rosado a blanco
+            if(items.ascenso=="2"){
+                if(c is AsistenciaManActivity){
+
+                    AlertDialog.Builder(c)
+                        .setTitle("CHMD - Transporte")
+                        .setMessage(
+                            "¿Desea reiniciar la asistencia de ${items.nombre}?"
+                        )
+                        .setPositiveButton("Aceptar") { _, _ ->
+
+                            //enviar reinicio de la asistencia
+
+                            val editor:SharedPreferences.Editor = sharedPreferences!!.edit()
+                            editor.putString("idRuta",items.id_ruta_h)
+                            editor.apply()
+                            if(c is AsistenciaManActivity){
+                                alumnoReiniciaAsistencia(items.id_alumno,items.id_ruta_h)
+                                if (hayConexion())
+                                    (c as AsistenciaManActivity).reiniciarAsistencia(items.id_alumno,items.id_ruta_h)
+                                (c as AsistenciaManActivity).recrear()
+
+                            }
+                            notifyDataSetChanged()
+
+
+
+                            (c as AsistenciaManActivity).recrear()
+                            notifyDataSetChanged()
+                        }
+
+                        .setNegativeButton("Cancelar"){dialog,_->
+                            dialog.dismiss()
+                            notifyDataSetChanged()
+                        }
+
+                        .show()
+
+
+                }
+            }
+
+                //Blanco a amarillo
                 if(items.ascenso=="0"){
                     alumnoAsiste(items.id_alumno,items.id_ruta_h)
                     val editor:SharedPreferences.Editor = sharedPreferences!!.edit()
                     editor.putString("idRuta",items.id_ruta_h)
                     editor.apply()
                     if(c is AsistenciaManActivity){
-                        (c as AsistenciaManActivity).enviarAsistencia(items.id_alumno,items.id_ruta_h)
+                        if(hayConexion())
+                            (c as AsistenciaManActivity).enviarAsistencia(items.id_alumno,items.id_ruta_h)
                         (c as AsistenciaManActivity).recrear()
                     }
                         notifyDataSetChanged()
                 }
-                if(items.ascenso=="1"){
 
+                //de amarillo a rosado
+                if(items.ascenso=="1"){
+                    val editor:SharedPreferences.Editor = sharedPreferences!!.edit()
+                    editor.putString("idRuta",items.id_ruta_h)
+                    editor.apply()
                     if(c is AsistenciaManActivity){
 
                         AlertDialog.Builder(c)
                             .setTitle("CHMD - Transporte")
                             .setMessage(
-                                "¿Desea reiniciar la asistencia de ${items.nombre}?"
+                                "¿Desea registrar la inasistencia de ${items.nombre}?"
                             )
                             .setPositiveButton("Aceptar") { _, _ ->
-
-                                //enviar reinicio de la asistencia
-
-                                val editor:SharedPreferences.Editor = sharedPreferences!!.edit()
-                                editor.putString("idRuta",items.id_ruta_h)
-                                editor.apply()
-                                if(c is AsistenciaManActivity){
-                                    alumnoReiniciaAsistencia(items.id_alumno,items.id_ruta_h)
-                                    (c as AsistenciaManActivity).reiniciarAsistencia(items.id_alumno,items.id_ruta_h)
-                                    (c as AsistenciaManActivity).recrear()
-
-                                }
-                                notifyDataSetChanged()
-
-
-
+                                alumnoNoAsiste(items.id_alumno,items.id_ruta_h)
+                                if(hayConexion())
+                                    (c as AsistenciaManActivity).enviarInasistencia(
+                                        items.id_alumno,
+                                        items.id_ruta_h
+                                    )
                                 (c as AsistenciaManActivity).recrear()
                                 notifyDataSetChanged()
                             }
@@ -166,18 +205,9 @@ class AsistenciaItemAdapter(var lstAsistencia:ArrayList<Asistencia>? = null, var
 
 
                     }
-
-
-
-
-
-
                 }
             //}
-            //La ruta va terminando, bajando a los niños en la escuela
-            if(items.estatus=="1"){
 
-            }
         }
 
         var foto = items.foto.replace(
@@ -270,8 +300,14 @@ class AsistenciaItemAdapter(var lstAsistencia:ArrayList<Asistencia>? = null, var
         return if(netInfo != null && netInfo.isConnectedOrConnecting)
             1
         else
-            0
+            -1
 
     }
 
+    fun hayConexion(): Boolean {
+        val cm = c!!.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val netInfo = cm.activeNetworkInfo
+        return netInfo != null && netInfo.isConnectedOrConnecting
+
+    }
 }

@@ -63,43 +63,7 @@ class AsistenciaBajarItemTarAdapter(var lstAsistencia:ArrayList<Asistencia>? = n
         holder.lblNombre.typeface = tf
         holder.btnInasistencia.visibility = View.GONE
 
-        //Ha subido
 
-/*
-        holder.btnInasistencia.setOnClickListener {
-
-            val editor:SharedPreferences.Editor = sharedPreferences!!.edit()
-            editor.putString("idRuta",items.id_ruta_h)
-            editor.apply()
-            if(c is AsistenciaManActivity){
-
-                AlertDialog.Builder(c)
-                    .setTitle("CHMD - Transporte")
-                    .setMessage(
-                        "¿Desea registrar la inasistencia de ${items.nombre}?"
-                    )
-                    .setPositiveButton("Aceptar") { _, _ ->
-                        alumnoNoAsiste(items.id_alumno,items.id_ruta_h)
-                        (c as AsistenciaManActivity).enviarInasistencia(
-                            items.id_alumno,
-                            items.id_ruta_h
-                        )
-                        (c as AsistenciaManActivity).recrear()
-                        notifyDataSetChanged()
-                    }
-
-                    .setNegativeButton("Cancelar"){dialog,_->
-                        dialog.dismiss()
-                        notifyDataSetChanged()
-                    }
-
-                    .show()
-
-
-            }
-
-        }
-  */
         if(items.ascenso_t == "0" && items.descenso_t == "0"){
             holder.llContenedor.setBackgroundColor(Color.parseColor("#ffffff"))
         }
@@ -126,7 +90,8 @@ class AsistenciaBajarItemTarAdapter(var lstAsistencia:ArrayList<Asistencia>? = n
 
                 if(c is AsistenciaTarDropActivity){
                     (c as AsistenciaTarDropActivity).recrear()
-                    (c as AsistenciaTarDropActivity).enviarBajada(items.id_alumno,items.id_ruta_h)
+                    if(hayConexion())
+                        (c as AsistenciaTarDropActivity).enviarBajada(items.id_alumno,items.id_ruta_h)
                 }
 
             }
@@ -140,7 +105,8 @@ class AsistenciaBajarItemTarAdapter(var lstAsistencia:ArrayList<Asistencia>? = n
 
                 if(c is AsistenciaTarDropActivity){
                     (c as AsistenciaTarDropActivity).recrear()
-                    (c as AsistenciaTarDropActivity).enviarBajada(items.id_alumno,items.id_ruta_h)
+                    if(hayConexion())
+                        (c as AsistenciaTarDropActivity).enviarBajada(items.id_alumno,items.id_ruta_h)
                 }
 
             }
@@ -163,7 +129,8 @@ class AsistenciaBajarItemTarAdapter(var lstAsistencia:ArrayList<Asistencia>? = n
                                 editor.apply()
                                 if(c is AsistenciaTarDropActivity){
                                     alumnoReiniciaAsistencia(items.id_alumno,items.id_ruta_h)
-                                    (c as AsistenciaTarDropActivity).reiniciarBajada(items.id_alumno,items.id_ruta_h)
+                                    if(hayConexion())
+                                        (c as AsistenciaTarDropActivity).reiniciarBajada(items.id_alumno,items.id_ruta_h)
                                     (c as AsistenciaTarDropActivity).recrear()
 
                                 }
@@ -281,7 +248,14 @@ class AsistenciaBajarItemTarAdapter(var lstAsistencia:ArrayList<Asistencia>? = n
         return if(netInfo != null && netInfo.isConnectedOrConnecting)
             1
         else
-            0
+            -1
+
+    }
+
+    fun hayConexion(): Boolean {
+        val cm = c!!.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val netInfo = cm.activeNetworkInfo
+        return netInfo != null && netInfo.isConnectedOrConnecting
 
     }
 }

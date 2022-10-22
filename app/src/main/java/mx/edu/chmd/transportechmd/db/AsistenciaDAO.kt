@@ -105,9 +105,10 @@ class AsistenciaDAO(
         fun eliminaAsistencia(idRuta:String)
 
         //Procesamiento offline
-        @Query("SELECT * FROM $TABLE_NAME WHERE procesado=0")
+        @Query("SELECT * FROM $TABLE_NAME WHERE procesado=-1")
         fun getAsistenciaSP():List<AsistenciaDAO>
-
+        @Query("UPDATE $TABLE_NAME SET procesado=1 WHERE idAlumno=:idAlumno and idRuta=:idRuta")
+        fun actualizaProcesados(idRuta: String, idAlumno: String)
 
     }
 

@@ -14,6 +14,8 @@ import retrofit2.Response
 class AsistenciaViewModel: ViewModel() {
     var alumnoAsistenciaResultData: MutableLiveData<String>
     var alumnoBajaResultData: MutableLiveData<String>
+    var alumnoProcesadoManResultData: MutableLiveData<String>
+    var alumnoProcesadoTarResultData: MutableLiveData<String>
     var alumnoInasistenciaResultData: MutableLiveData<String>
     var alumnoReiniciaAsistenciaResultData: MutableLiveData<String>
     var asistenciaCompletaResultData: MutableLiveData<String>
@@ -25,6 +27,8 @@ class AsistenciaViewModel: ViewModel() {
         alumnoInasistenciaResultData = MutableLiveData()
         alumnoReiniciaAsistenciaResultData = MutableLiveData()
         asistenciaCompletaResultData = MutableLiveData()
+        alumnoProcesadoManResultData = MutableLiveData()
+        alumnoProcesadoTarResultData = MutableLiveData()
         alumnoBajaResultData = MutableLiveData()
         comentarioResultData = MutableLiveData()
         iTransporteService = TransporteAPI.getCHMDService()!!
@@ -281,6 +285,9 @@ class AsistenciaViewModel: ViewModel() {
         })
 
     }
+
+
+
 
 
     }
