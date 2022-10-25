@@ -28,7 +28,8 @@ class AsistenciaDAO(
     @ColumnInfo(name = "ordenOut")  val  ordenOut:String,
     @ColumnInfo(name = "inasist")  val  inasist:Boolean,
     @ColumnInfo(name = "inasistTarde")  val  inasistTarde:Boolean,
-    @ColumnInfo(name = "procesado")  val  procesado:Int) {
+    @ColumnInfo(name = "procesado")  val  procesado:Int,
+    @ColumnInfo(name = "asistencia")  val  asistencia:String,) {
     companion object {
         const val TABLE_NAME = "Asistencia"
     }
@@ -38,7 +39,8 @@ class AsistenciaDAO(
         @Query("SELECT * FROM $TABLE_NAME WHERE idRuta=:idRuta ORDER BY CAST(ascenso as INTEGER), CAST(ordenIn as INTEGER)")
         fun getAsistencia(idRuta: String):List<AsistenciaDAO>
 
-
+        @Query("SELECT * FROM $TABLE_NAME WHERE idRuta=:idRuta AND nombreAlumno LIKE '%' || :nombre || '%' ORDER BY CAST(ascenso as INTEGER), CAST(ordenIn as INTEGER)")
+        fun buscarAlumnos(idRuta: String,nombre:String):List<AsistenciaDAO>
 
 
         @Query("SELECT * FROM $TABLE_NAME WHERE idRuta=:idRuta AND ascenso<2 and descenso<2 ORDER BY CAST(descenso as INTEGER), CAST(ordenIn as INTEGER)")

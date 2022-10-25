@@ -9,9 +9,11 @@ import android.graphics.Typeface
 import android.net.ConnectivityManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Button
+import android.widget.SearchView
 import android.widget.TextView
 import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.ViewModelProvider
@@ -24,11 +26,17 @@ import kotlinx.coroutines.launch
 import mx.edu.chmd.transportechmd.R
 import mx.edu.chmd.transportechmd.SeleccionRutaActivity
 import mx.edu.chmd.transportechmd.adapter.AsistenciaBajarItemTarAdapter
+import mx.edu.chmd.transportechmd.db.AsistenciaDAO
 import mx.edu.chmd.transportechmd.db.TransporteDB
 import mx.edu.chmd.transportechmd.model.Asistencia
+import mx.edu.chmd.transportechmd.networking.ITransporte
+import mx.edu.chmd.transportechmd.networking.TransporteAPI
 import mx.edu.chmd.transportechmd.servicios.NetworkChangeReceiver
 import mx.edu.chmd.transportechmd.viewmodel.AsistenciaViewModel
 import mx.edu.chmd.transportechmd.viewmodel.RutaViewModel
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 //RUTA 4: Final, dejar a los niños en sus casas
 class AsistenciaTarDropActivity : AppCompatActivity() {
@@ -38,6 +46,7 @@ class AsistenciaTarDropActivity : AppCompatActivity() {
     private lateinit var rutaViewModel: RutaViewModel
     private var sharedPreferences: SharedPreferences? = null
     var id_ruta:String=""
+    lateinit var iTransporte: ITransporte
     private var networkChangeReceiver: NetworkChangeReceiver = NetworkChangeReceiver()
 
     override fun onStart() {
@@ -60,10 +69,12 @@ class AsistenciaTarDropActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_asistencia_tar_drop)
         val SHARED:String=getString(R.string.spref)
+        val db = TransporteDB.getInstance(this.application)
         sharedPreferences = getSharedPreferences(SHARED, 0)
         val toolbar =
             findViewById<Toolbar>(R.id.tool_bar) // Attaching the layout to the toolbar object
         setSupportActionBar(toolbar)
+        iTransporte = TransporteAPI.getCHMDService()!!
         asistenciaViewModel = ViewModelProvider(this)[AsistenciaViewModel::class.java]
         rutaViewModel = ViewModelProvider(this)[RutaViewModel::class.java]
         val tf = Typeface.createFromAsset(getAssets(),"fonts/Nunito-Bold.ttf")
@@ -111,6 +122,46 @@ class AsistenciaTarDropActivity : AppCompatActivity() {
 
         }
 
+
+        searchView.setOnQueryTextListener(object: SearchView.OnQueryTextListener{
+            override fun onQueryTextSubmit(text: String?): Boolean {
+                return false
+            }
+
+            override fun onQueryTextChange(text: String?): Boolean {
+                if(text!!.isNotEmpty()){
+                    lstAsistencia.clear()
+                    buscarAlumno(id_ruta,text)
+                }else{
+                    lstAsistencia.clear()
+                    getAsistencia(id_ruta)
+                }
+                return true
+            }
+
+        })
+
+
+        swpContainer.setOnRefreshListener {
+            swpContainer.isRefreshing=true
+            //borrar data
+            lstAsistencia.clear()
+            rvAsistencia.adapter = null
+            //borrar de la base por idRuta y descargar de nuevo
+            val a = CoroutineScope(Dispatchers.IO.limitedParallelism(1)).launch {
+                db.iAsistenciaDAO.eliminaAsistencia(id_ruta)
+                Log.d("TAREA A","llamada")
+                getAsistenciaRutaTar(id_ruta)
+                Thread.sleep(3500)
+                Log.d("TAREA B","llamada")
+                getAsistencia(id_ruta)
+                Thread.sleep(2000)
+                Log.d("TAREA C","llamada")
+                swpContainer.isRefreshing=false
+            }
+
+        }
+
     }
 
 
@@ -121,7 +172,44 @@ class AsistenciaTarDropActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
+    suspend fun getAsistenciaRutaTar(idRuta:String){
+        val db = TransporteDB.getInstance(this.application)
+        val call = iTransporte.getAsistenciaTar(idRuta)
+        CoroutineScope(Dispatchers.IO).launch {
+            db.iAsistenciaDAO.eliminaAsistencia(idRuta)
+        }
+        call.enqueue(object: Callback<List<Asistencia>> {
+            override fun onResponse(
+                call: Call<List<Asistencia>>,
+                response: Response<List<Asistencia>>
+            ) {
+                if(response!=null){
+                    val asistencia = response.body()
+                    asistencia!!.forEach { alumno->
+                        val a = AsistenciaDAO(0,idRuta,"",alumno.id_alumno,
+                            alumno.nombre,alumno.domicilio,alumno.hora_manana,alumno.hora_regreso,
+                            alumno.ascenso,alumno.descenso,alumno.domicilio_s,alumno.grupo,alumno.grado,
+                            alumno.nivel,alumno.foto,false,false,alumno.ascenso_t,alumno.descenso_t,
+                            alumno.salida,alumno.orden_in,alumno.orden_out,false,false,0,alumno.asistencia)
+                        CoroutineScope(Dispatchers.IO).launch {
+                            db.iAsistenciaDAO.guardaAsistencia(a)
+                        }
 
+                    }
+
+
+                }
+
+
+            }
+
+            override fun onFailure(call: Call<List<Asistencia>>, t: Throwable) {
+
+            }
+
+        })
+
+    }
 
     fun cerrarRuta(estatus:String, id_ruta: String){
         rutaViewModel.getCierreResultObserver().observe(this){result->
@@ -172,7 +260,7 @@ class AsistenciaTarDropActivity : AppCompatActivity() {
     fun getAsistencia(id_ruta:String)/*:ArrayList<Asistencia>*/{
         val db = TransporteDB.getInstance(this.application)
         var bajan:Int=0
-        var inasistencias:Int=0
+        var novan:Int=0
         var totalAlumnos:Int=0
         //var lst:ArrayList<Asistencia> = ArrayList()
         CoroutineScope(Dispatchers.IO).launch {
@@ -181,6 +269,10 @@ class AsistenciaTarDropActivity : AppCompatActivity() {
             asistentes.forEach{ alumno->
                 if(alumno.descenso_t=="1")
                     bajan++
+
+                if(alumno.ascenso_t=="1" && !alumno.salida.equals("0"))
+                    novan++
+
                 lstAsistencia.add(
                     Asistencia(alumno.ascenso, alumno.ascenso_t,
                         "",alumno.descenso,alumno.descenso_t,alumno.domicilio,
@@ -200,7 +292,7 @@ class AsistenciaTarDropActivity : AppCompatActivity() {
             //adapter.clear()
             //adapter.addAll(lstAsistencia)
 
-            if(bajan == totalAlumnos){
+            if(bajan == totalAlumnos - novan){
                 btnCerrarRegistro.setBackgroundResource(R.drawable.boton_redondeado)
                 btnCerrarRegistro.isEnabled = true
                 btnCerrarRegistro.text="Cerrar registro"
@@ -215,7 +307,50 @@ class AsistenciaTarDropActivity : AppCompatActivity() {
         }
         //return lst
     }
+    fun buscarAlumno(id_ruta:String,nombre:String)/*:ArrayList<Asistencia>*/{
+        val db = TransporteDB.getInstance(this.application)
+        var bajan:Int=0
+        var novan:Int=0
+        var totalAlumnos:Int=0
+        //var lst:ArrayList<Asistencia> = ArrayList()
+        CoroutineScope(Dispatchers.IO).launch {
+            val asistentes = db.iAsistenciaDAO.buscarAlumnos(id_ruta,nombre)
+            totalAlumnos = asistentes.size
+            asistentes.forEach{ alumno->
+                lstAsistencia.add(
+                    Asistencia(alumno.ascenso, alumno.ascenso_t,
+                        "",alumno.descenso,alumno.descenso_t,alumno.domicilio,
+                        alumno.domicilio_s,"","",alumno.foto,alumno.grado,
+                        alumno.grupo,alumno.horaManana,alumno.horaRegreso,alumno.idAlumno,
+                        alumno.idRuta,alumno.idRuta,alumno.nivel,alumno.nombreAlumno,alumno.ordenIn,
+                        alumno.ordenOut,alumno.salida,"")
+                )
+            }
 
+            //lst = lstAsistencia
+            //adapter.notifyDataSetChanged()
+
+        }
+
+        CoroutineScope(Dispatchers.Main).launch{
+            //adapter.clear()
+            //adapter.addAll(lstAsistencia)
+
+            if(bajan == totalAlumnos - novan){
+                btnCerrarRegistro.setBackgroundResource(R.drawable.boton_redondeado)
+                btnCerrarRegistro.isEnabled = true
+                btnCerrarRegistro.text="Cerrar registro"
+            }
+
+            lblTotales.setText("$bajan/${lstAsistencia.size}")
+
+            adapter = AsistenciaBajarItemTarAdapter(lstAsistencia,this@AsistenciaTarDropActivity)
+            rvAsistencia.layoutManager = LinearLayoutManager(this@AsistenciaTarDropActivity)
+            rvAsistencia.adapter = adapter
+            //adapter.actualizarDatos(lstAsistencia)
+        }
+        //return lst
+    }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         val inflater = menuInflater

@@ -8,8 +8,10 @@ import android.content.SharedPreferences
 import android.graphics.Typeface
 import android.net.ConnectivityManager
 import android.os.Bundle
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.SearchView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.ViewModelProvider
@@ -22,11 +24,18 @@ import mx.edu.chmd.transportechmd.R
 import mx.edu.chmd.transportechmd.SeleccionRutaActivity
 import mx.edu.chmd.transportechmd.adapter.AsistenciaItemAdapter
 import mx.edu.chmd.transportechmd.adapter.AsistenciaItemTarAdapter
+import mx.edu.chmd.transportechmd.db.AsistenciaDAO
 import mx.edu.chmd.transportechmd.db.TransporteDB
 import mx.edu.chmd.transportechmd.model.Asistencia
+import mx.edu.chmd.transportechmd.networking.ITransporte
+import mx.edu.chmd.transportechmd.networking.TransporteAPI
 import mx.edu.chmd.transportechmd.servicios.NetworkChangeReceiver
 import mx.edu.chmd.transportechmd.viewmodel.AsistenciaViewModel
 import mx.edu.chmd.transportechmd.viewmodel.RutaViewModel
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+
 class AsistenciaTarActivity : AppCompatActivity() {
     var lstAsistencia:ArrayList<Asistencia> = ArrayList()
     var adapter:AsistenciaItemTarAdapter = AsistenciaItemTarAdapter()
@@ -34,7 +43,7 @@ class AsistenciaTarActivity : AppCompatActivity() {
     private lateinit var rutaViewModel: RutaViewModel
     private var sharedPreferences: SharedPreferences? = null
     private var networkChangeReceiver: NetworkChangeReceiver = NetworkChangeReceiver()
-
+    lateinit var iTransporte: ITransporte
     override fun onStart() {
         super.onStart()
         val filter = IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
@@ -62,6 +71,8 @@ class AsistenciaTarActivity : AppCompatActivity() {
         setSupportActionBar(toolbar)
         asistenciaViewModel = ViewModelProvider(this)[AsistenciaViewModel::class.java]
         rutaViewModel = ViewModelProvider(this)[RutaViewModel::class.java]
+        val db = TransporteDB.getInstance(this.application)
+        iTransporte = TransporteAPI.getCHMDService()!!
         val tf = Typeface.createFromAsset(getAssets(),"fonts/Nunito-Bold.ttf")
         id_ruta = sharedPreferences!!.getString("idRuta","0").toString()
         val nomRuta = sharedPreferences!!.getString("nomRuta","--").toString()
@@ -107,6 +118,48 @@ class AsistenciaTarActivity : AppCompatActivity() {
 
         }
 
+        searchView.setOnQueryTextListener(object: SearchView.OnQueryTextListener{
+            override fun onQueryTextSubmit(text: String?): Boolean {
+                return false
+            }
+
+            override fun onQueryTextChange(text: String?): Boolean {
+                if(text!!.isNotEmpty()){
+                    lstAsistencia.clear()
+                    buscarAlumno(id_ruta,text)
+                }else{
+                    lstAsistencia.clear()
+                    getAsistencia(id_ruta)
+                }
+                return true
+            }
+
+        })
+
+
+
+        swpContainer.setOnRefreshListener {
+            swpContainer.isRefreshing=true
+            //borrar data
+            lstAsistencia.clear()
+            rvAsistencia.adapter = null
+            //borrar de la base por idRuta y descargar de nuevo
+            val a = CoroutineScope(Dispatchers.IO.limitedParallelism(1)).launch {
+                db.iAsistenciaDAO.eliminaAsistencia(id_ruta)
+                Log.d("TAREA A","llamada")
+                getAsistenciaRutaTar(id_ruta)
+                Thread.sleep(3500)
+                Log.d("TAREA B","llamada")
+                getAsistencia(id_ruta)
+                Thread.sleep(2000)
+                Log.d("TAREA C","llamada")
+                swpContainer.isRefreshing=false
+            }
+
+        }
+
+
+
     }
 
 
@@ -116,6 +169,46 @@ class AsistenciaTarActivity : AppCompatActivity() {
         finish()
         startActivity(intent)
     }
+
+    suspend fun getAsistenciaRutaTar(idRuta:String){
+        val db = TransporteDB.getInstance(this.application)
+        val call = iTransporte.getAsistenciaTar(idRuta)
+        CoroutineScope(Dispatchers.IO).launch {
+            db.iAsistenciaDAO.eliminaAsistencia(idRuta)
+        }
+        call.enqueue(object: Callback<List<Asistencia>> {
+            override fun onResponse(
+                call: Call<List<Asistencia>>,
+                response: Response<List<Asistencia>>
+            ) {
+                if(response!=null){
+                    val asistencia = response.body()
+                    asistencia!!.forEach { alumno->
+                        val a = AsistenciaDAO(0,idRuta,"",alumno.id_alumno,
+                            alumno.nombre,alumno.domicilio,alumno.hora_manana,alumno.hora_regreso,
+                            alumno.ascenso,alumno.descenso,alumno.domicilio_s,alumno.grupo,alumno.grado,
+                            alumno.nivel,alumno.foto,false,false,alumno.ascenso_t,alumno.descenso_t,
+                            alumno.salida,alumno.orden_in,alumno.orden_out,false,false,0,alumno.asistencia)
+                        CoroutineScope(Dispatchers.IO).launch {
+                            db.iAsistenciaDAO.guardaAsistencia(a)
+                        }
+
+                    }
+
+
+                }
+
+
+            }
+
+            override fun onFailure(call: Call<List<Asistencia>>, t: Throwable) {
+
+            }
+
+        })
+
+    }
+
 
     fun reiniciarAsistencia(id_alumno:String, id_ruta: String){
         asistenciaViewModel.getAlumnoReiniciaAsistenciaResultObserver().observe(this){result->
@@ -157,15 +250,18 @@ class AsistenciaTarActivity : AppCompatActivity() {
     fun getAsistencia(id_ruta:String)/*:ArrayList<Asistencia>*/{
         val db = TransporteDB.getInstance(this.application)
         var suben:Int=0
+        var novan:Int=0
         var inasistencias:Int=0
         var totalAlumnos:Int=0
         //var lst:ArrayList<Asistencia> = ArrayList()
         CoroutineScope(Dispatchers.IO).launch {
-            val asistentes = db.iAsistenciaDAO.getAsistencia(id_ruta)
+            var asistentes = db.iAsistenciaDAO.getAsistencia(id_ruta)
             totalAlumnos = asistentes.size
             asistentes.forEach{ alumno->
-                if(alumno.ascenso_t=="1")
+                if(alumno.ascenso_t=="1" && alumno.salida.equals("0"))
                     suben++
+                if(alumno.ascenso_t=="1" && !alumno.salida.equals("0"))
+                    novan++
 
                 if(alumno.ascenso_t=="2")
                     inasistencias++
@@ -187,7 +283,7 @@ class AsistenciaTarActivity : AppCompatActivity() {
             //adapter.clear()
             //adapter.addAll(lstAsistencia)
 
-            if(suben + inasistencias == totalAlumnos){
+            if(suben + inasistencias == totalAlumnos - novan){
                 btnCerrarRegistro.setBackgroundResource(R.drawable.boton_redondeado)
                 btnCerrarRegistro.isEnabled = true
                 btnCerrarRegistro.text="Cerrar registro"
@@ -203,7 +299,41 @@ class AsistenciaTarActivity : AppCompatActivity() {
         }
         //return lst
     }
+    fun buscarAlumno(id_ruta:String,nombre:String)/*:ArrayList<Asistencia>*/{
+        val db = TransporteDB.getInstance(this.application)
 
+        //var lst:ArrayList<Asistencia> = ArrayList()
+        CoroutineScope(Dispatchers.IO).launch {
+            var asistentes = db.iAsistenciaDAO.buscarAlumnos(id_ruta,nombre)
+
+            asistentes.forEach{ alumno->
+
+
+                lstAsistencia.add(Asistencia(alumno.ascenso, alumno.ascenso_t,
+                    "",alumno.descenso,alumno.descenso_t,alumno.domicilio,
+                    alumno.domicilio_s,"","",alumno.foto,alumno.grado,
+                    alumno.grupo,alumno.horaManana,alumno.horaRegreso,alumno.idAlumno,
+                    alumno.idRuta,alumno.idRuta,alumno.nivel,alumno.nombreAlumno,alumno.ordenIn,
+                    alumno.ordenOut,alumno.salida,""))
+            }
+
+            //lst = lstAsistencia
+            //adapter.notifyDataSetChanged()
+
+        }
+
+        CoroutineScope(Dispatchers.Main).launch{
+            //adapter.clear()
+            //adapter.addAll(lstAsistencia)
+
+
+            adapter = AsistenciaItemTarAdapter(lstAsistencia,this@AsistenciaTarActivity)
+            rvAsistencia.layoutManager = LinearLayoutManager(this@AsistenciaTarActivity)
+            rvAsistencia.adapter = adapter
+            //adapter.actualizarDatos(lstAsistencia)
+        }
+        //return lst
+    }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         val inflater = menuInflater

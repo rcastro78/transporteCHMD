@@ -20,6 +20,7 @@ import mx.edu.chmd.transportechmd.db.RutaDAO
 import mx.edu.chmd.transportechmd.db.TransporteDB
 import mx.edu.chmd.transportechmd.model.Asistencia
 import mx.edu.chmd.transportechmd.model.Ruta
+import mx.edu.chmd.transportechmd.model.Usuario
 import mx.edu.chmd.transportechmd.networking.ITransporte
 import mx.edu.chmd.transportechmd.networking.TransporteAPI
 import mx.edu.chmd.transportechmd.servicios.NetworkChangeReceiver
@@ -74,13 +75,7 @@ class MainActivity : AppCompatActivity() {
             email = txtEmail.text.toString()
             clave = txtPassword.text.toString()
             if(email.isNotEmpty() && clave.isNotEmpty()){
-
-                    //Log.d("CORUTINA LOGIN", Date().time.toString())
-                    iniciarSesion(email,clave)
-
-
-
-
+              getUserData(email,clave)
             }else{
                 Toast.makeText(applicationContext,"Ambos campos son obligatorios",Toast.LENGTH_LONG).show()
             }
@@ -89,18 +84,38 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    fun iniciarSesion(email:String,clave:String){
-        loginViewModel.getUserDataResultObserver().observe(this){usuarios->
-            usuarios.forEach { usuario->
-                CoroutineScope(Dispatchers.IO).launch {
-                    getRutasAsignadas(usuario.id_usuario)
+    fun getUserData(usr:String,pwd:String){
+        val call = iTransporteService.iniciarSesion(usr,pwd)
+        call.enqueue(object: Callback<List<Usuario>> {
+            override fun onResponse(call: Call<List<Usuario>>, response: Response<List<Usuario>>) {
+                if(response.code()==200) {
+                    response.body()!!.forEach { usuario ->
+
+                        CoroutineScope(Dispatchers.IO).launch {
+                            getRutasAsignadas(usuario.id_usuario)
+                        }
+                    }
+
+                    if (response.body()!!.size<=5) {
+                        lblEstado.visibility=View.VISIBLE
+                        lblEstado.text="Usuario no reconocido"
+                        btnLogin.isEnabled=true
+                    }
+
                 }
 
             }
-        }
 
-        loginViewModel.getUserData(email,clave)
+            override fun onFailure(call: Call<List<Usuario>>, t: Throwable) {
+
+                Log.d("ERROR-DSG",t.localizedMessage)
+            }
+
+        })
     }
+
+
+
 
 
     suspend fun getAsistenciaRutaMan(idRuta:String){
@@ -121,7 +136,7 @@ class MainActivity : AppCompatActivity() {
                         alumno.nombre,alumno.domicilio,alumno.hora_manana,"",
                         alumno.ascenso,alumno.descenso,alumno.domicilio_s,alumno.grupo,alumno.grado,
                         alumno.nivel,alumno.foto,false,false,alumno.ascenso_t,alumno.descenso_t,
-                        alumno.salida,alumno.orden_in,"",false,false,0)
+                        alumno.salida,alumno.orden_in,"",false,false,0,alumno.asistencia)
                         CoroutineScope(Dispatchers.IO).launch {
                             db.iAsistenciaDAO.guardaAsistencia(a)
                         }
@@ -184,7 +199,7 @@ class MainActivity : AppCompatActivity() {
                             alumno.nombre,alumno.domicilio,alumno.hora_manana,horaReg,
                             alumno.ascenso,alumno.descenso,alumno.domicilio_s,alumno.grupo,alumno.grado,
                             alumno.nivel,alumno.foto,false,false,alumno.ascenso_t,alumno.descenso_t,
-                            alumno.salida,alumno.orden_in,orden_out,false,false,0)
+                            alumno.salida,alumno.orden_in,orden_out,false,false,0,alumno.asistencia)
                         CoroutineScope(Dispatchers.IO).launch {
                             db.iAsistenciaDAO.guardaAsistencia(a)
                         }

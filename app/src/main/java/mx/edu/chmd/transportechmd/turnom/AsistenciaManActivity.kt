@@ -11,20 +11,26 @@ import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import android.widget.Button
+import android.widget.SearchView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import kotlinx.android.synthetic.main.activity_asistencia_man.*
+import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import mx.edu.chmd.transportechmd.R
 import mx.edu.chmd.transportechmd.SeleccionRutaActivity
 import mx.edu.chmd.transportechmd.adapter.AsistenciaItemAdapter
+import mx.edu.chmd.transportechmd.db.AsistenciaDAO
 import mx.edu.chmd.transportechmd.db.TransporteDB
 import mx.edu.chmd.transportechmd.model.Asistencia
 import mx.edu.chmd.transportechmd.model.ComentarioItem
@@ -74,6 +80,7 @@ class AsistenciaManActivity : AppCompatActivity() {
         setContentView(R.layout.activity_asistencia_man)
         val SHARED:String=getString(R.string.spref)
         sharedPreferences = getSharedPreferences(SHARED, 0)
+        val db = TransporteDB.getInstance(application)
         val toolbar =
             findViewById<Toolbar>(R.id.tool_bar) // Attaching the layout to the toolbar object
         setSupportActionBar(toolbar)
@@ -129,8 +136,88 @@ class AsistenciaManActivity : AppCompatActivity() {
 
         }
 
+        searchView.setOnQueryTextListener(object:SearchView.OnQueryTextListener{
+            override fun onQueryTextSubmit(text: String?): Boolean {
+                return false
+            }
+
+            override fun onQueryTextChange(text: String?): Boolean {
+                if(text!!.isNotEmpty()){
+                    lstAsistencia.clear()
+                    buscarAlumno(id_ruta,text)
+                }else{
+                    lstAsistencia.clear()
+                    getAsistencia(id_ruta)
+                }
+                return true
+            }
+
+        })
+
+
+        swpContainer.setOnRefreshListener {
+            swpContainer.isRefreshing=true
+            //borrar data
+            lstAsistencia.clear()
+            rvAsistencia.adapter = null
+            //borrar de la base por idRuta y descargar de nuevo
+            val a = CoroutineScope(Dispatchers.IO.limitedParallelism(1)).launch {
+                db.iAsistenciaDAO.eliminaAsistencia(id_ruta)
+                Log.d("TAREA A","llamada")
+                getAsistenciaRutaMan(id_ruta)
+                Thread.sleep(3500)
+                Log.d("TAREA B","llamada")
+                getAsistencia(id_ruta)
+                Thread.sleep(2000)
+                Log.d("TAREA C","llamada")
+                swpContainer.isRefreshing=false
+            }
+
+        }
+
+
+
     }
 
+
+    suspend fun getAsistenciaRutaMan(idRuta:String){
+        val db = TransporteDB.getInstance(this.application)
+        val call = iTransporte.getAsistenciaMan(idRuta)
+        CoroutineScope(Dispatchers.IO).launch {
+            db.iAsistenciaDAO.eliminaAsistencia(idRuta)
+        }
+        call.enqueue(object:Callback<List<Asistencia>>{
+            override fun onResponse(
+                call: Call<List<Asistencia>>,
+                response: Response<List<Asistencia>>
+            ) {
+                if(response!=null){
+                    val asistencia = response.body()
+                    asistencia!!.forEach { alumno->
+                        val a = AsistenciaDAO(0,idRuta,"",alumno.id_alumno,
+                            alumno.nombre,alumno.domicilio,alumno.hora_manana,"",
+                            alumno.ascenso,alumno.descenso,alumno.domicilio_s,alumno.grupo,alumno.grado,
+                            alumno.nivel,alumno.foto,false,false,alumno.ascenso_t,alumno.descenso_t,
+                            alumno.salida,alumno.orden_in,"",false,false,0,alumno.asistencia)
+                        CoroutineScope(Dispatchers.IO).launch {
+                            db.iAsistenciaDAO.guardaAsistencia(a)
+                        }
+
+                    }
+
+
+                }
+
+
+            }
+
+            override fun onFailure(call: Call<List<Asistencia>>, t: Throwable) {
+
+            }
+
+        })
+
+    }
 
     //Funciones para ser llamadas desde el recyclerview
 
@@ -201,6 +288,44 @@ class AsistenciaManActivity : AppCompatActivity() {
 
             })
         return comentario
+    }
+
+
+    fun buscarAlumno(id_ruta:String,alumnoBuscar:String)/*:ArrayList<Asistencia>*/{
+        val db = TransporteDB.getInstance(this.application)
+        var suben:Int=0
+        var inasistencias:Int=0
+        var totalAlumnos:Int=0
+        //var lst:ArrayList<Asistencia> = ArrayList()
+        CoroutineScope(Dispatchers.IO).launch {
+            val asistentes = db.iAsistenciaDAO.buscarAlumnos(id_ruta,alumnoBuscar)
+            totalAlumnos = asistentes.size
+            asistentes.forEach{ alumno->
+
+                lstAsistencia.add(Asistencia(alumno.ascenso, alumno.ascenso_t,
+                    "",alumno.descenso,alumno.descenso_t,alumno.domicilio,
+                    alumno.domicilio_s,"","",alumno.foto,alumno.grado,
+                    alumno.grupo,alumno.horaManana,alumno.horaRegreso,alumno.idAlumno,
+                    alumno.idRuta,alumno.idRuta,alumno.nivel,alumno.nombreAlumno,alumno.ordenIn,
+                    alumno.ordenOut,alumno.salida,""))
+            }
+
+            //lst = lstAsistencia
+            //adapter.notifyDataSetChanged()
+
+        }
+
+        CoroutineScope(Dispatchers.Main).launch{
+            //adapter.clear()
+            //adapter.addAll(lstAsistencia)
+
+
+            adapter = AsistenciaItemAdapter(lstAsistencia,this@AsistenciaManActivity)
+            rvAsistencia.layoutManager = LinearLayoutManager(this@AsistenciaManActivity)
+            rvAsistencia.adapter = adapter
+            //adapter.actualizarDatos(lstAsistencia)
+        }
+        //return lst
     }
 
 
@@ -276,14 +401,21 @@ class AsistenciaManActivity : AppCompatActivity() {
             btmComentarios.setContentView(R.layout.view_enviar_comentario)
             val txtComentario: TextView? = btmComentarios.findViewById(R.id.txtComentario)
             val btnComment: Button? = btmComentarios.findViewById(R.id.btnComment)
-
+            var c = ""
             //Recuperar el comentario de la ruta
-            val comentario = getComentario(id_ruta)
-            txtComentario!!.text = comentario
+            CoroutineScope(Dispatchers.IO).launch {
+                c = getComentario(id_ruta)
+                Thread.sleep(2000)
+                Log.d("COMENTARIO",c)
+            }
+
+            CoroutineScope(Dispatchers.Main).launch{
+                txtComentario!!.text = c
+            }
 
             btnComment!!.setOnClickListener {
                 //Enviar comentario de la ruta
-                if(txtComentario.text.isNotEmpty()){
+                if(txtComentario!!.text.isNotEmpty()){
                     val c = txtComentario.text.toString()
                     enviarComentario(id_ruta,c)
 

@@ -9,12 +9,10 @@ import android.graphics.Typeface
 import android.net.ConnectivityManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
-import android.widget.Button
-import android.widget.EditText
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -28,6 +26,7 @@ import mx.edu.chmd.transportechmd.R
 import mx.edu.chmd.transportechmd.SeleccionRutaActivity
 import mx.edu.chmd.transportechmd.adapter.AsistenciaBajarItemAdapter
 import mx.edu.chmd.transportechmd.adapter.AsistenciaItemAdapter
+import mx.edu.chmd.transportechmd.db.AsistenciaDAO
 import mx.edu.chmd.transportechmd.db.TransporteDB
 import mx.edu.chmd.transportechmd.model.Asistencia
 import mx.edu.chmd.transportechmd.model.ComentarioItem
@@ -72,6 +71,7 @@ class AsistenciaManDropActivity : AppCompatActivity() {
         setContentView(R.layout.activity_asistencia_man_drop)
         val SHARED:String=getString(R.string.spref)
         iTransporte = TransporteAPI.getCHMDService()!!
+        val db = TransporteDB.getInstance(this.application)
         sharedPreferences = getSharedPreferences(SHARED, 0)
         val toolbar =
             findViewById<Toolbar>(R.id.tool_bar) // Attaching the layout to the toolbar object
@@ -117,11 +117,48 @@ class AsistenciaManDropActivity : AppCompatActivity() {
                 .show()
 
 
+            swpContainer.setOnRefreshListener {
+                swpContainer.isRefreshing=true
+                //borrar data
+                lstAsistencia.clear()
+                rvAsistencia.adapter = null
+                //borrar de la base por idRuta y descargar de nuevo
+                val a = CoroutineScope(Dispatchers.IO.limitedParallelism(1)).launch {
+                    db.iAsistenciaDAO.eliminaAsistencia(id_ruta)
+                    Log.d("TAREA A","llamada")
+                    getAsistenciaRutaMan(id_ruta)
+                    Thread.sleep(3500)
+                    Log.d("TAREA B","llamada")
+                    getAsistencia(id_ruta)
+                    Thread.sleep(2000)
+                    Log.d("TAREA C","llamada")
+                    swpContainer.isRefreshing=false
+                }
 
+            }
 
 
 
         }
+
+
+        searchView.setOnQueryTextListener(object: SearchView.OnQueryTextListener{
+            override fun onQueryTextSubmit(text: String?): Boolean {
+                return false
+            }
+
+            override fun onQueryTextChange(text: String?): Boolean {
+                if(text!!.isNotEmpty()){
+                    lstAsistencia.clear()
+                    buscarAlumno(id_ruta,text)
+                }else{
+                    lstAsistencia.clear()
+                    getAsistencia(id_ruta)
+                }
+                return true
+            }
+
+        })
 
     }
 
@@ -178,6 +215,45 @@ class AsistenciaManDropActivity : AppCompatActivity() {
 
     //fin
 
+    suspend fun getAsistenciaRutaMan(idRuta:String){
+        val db = TransporteDB.getInstance(this.application)
+        val call = iTransporte.getAsistenciaMan(idRuta)
+        CoroutineScope(Dispatchers.IO).launch {
+            db.iAsistenciaDAO.eliminaAsistencia(idRuta)
+        }
+        call.enqueue(object:Callback<List<Asistencia>>{
+            override fun onResponse(
+                call: Call<List<Asistencia>>,
+                response: Response<List<Asistencia>>
+            ) {
+                if(response!=null){
+                    val asistencia = response.body()
+                    asistencia!!.forEach { alumno->
+                        val a = AsistenciaDAO(0,idRuta,"",alumno.id_alumno,
+                            alumno.nombre,alumno.domicilio,alumno.hora_manana,"",
+                            alumno.ascenso,alumno.descenso,alumno.domicilio_s,alumno.grupo,alumno.grado,
+                            alumno.nivel,alumno.foto,false,false,alumno.ascenso_t,alumno.descenso_t,
+                            alumno.salida,alumno.orden_in,"",false,false,0,alumno.asistencia)
+                        CoroutineScope(Dispatchers.IO).launch {
+                            db.iAsistenciaDAO.guardaAsistencia(a)
+                        }
+
+                    }
+
+
+                }
+
+
+            }
+
+            override fun onFailure(call: Call<List<Asistencia>>, t: Throwable) {
+
+            }
+
+        })
+
+    }
+
     fun getAsistencia(id_ruta:String)/*:ArrayList<Asistencia>*/{
         val db = TransporteDB.getInstance(this.application)
         var bajan:Int=0
@@ -224,7 +300,38 @@ class AsistenciaManDropActivity : AppCompatActivity() {
         }
         //return lst
     }
+    fun buscarAlumno(id_ruta:String,nombre:String)/*:ArrayList<Asistencia>*/{
+        val db = TransporteDB.getInstance(this.application)
+        //var lst:ArrayList<Asistencia> = ArrayList()
+        CoroutineScope(Dispatchers.IO).launch {
+            val asistentes = db.iAsistenciaDAO.buscarAlumnos(id_ruta,nombre)
+            asistentes.forEach{ alumno->
+                if(alumno.descenso=="1")
 
+                lstAsistencia.add(
+                    Asistencia(alumno.ascenso, alumno.ascenso_t,
+                        "",alumno.descenso,alumno.descenso_t,alumno.domicilio,
+                        alumno.domicilio_s,"","",alumno.foto,alumno.grado,
+                        alumno.grupo,alumno.horaManana,alumno.horaRegreso,alumno.idAlumno,
+                        alumno.idRuta,alumno.idRuta,alumno.nivel,alumno.nombreAlumno,alumno.ordenIn,
+                        alumno.ordenOut,alumno.salida,"")
+                )
+            }
+
+            //lst = lstAsistencia
+            //adapter.notifyDataSetChanged()
+
+        }
+
+        CoroutineScope(Dispatchers.Main).launch{
+
+            adapter = AsistenciaBajarItemAdapter(lstAsistencia,this@AsistenciaManDropActivity)
+            rvAsistencia.layoutManager = LinearLayoutManager(this@AsistenciaManDropActivity)
+            rvAsistencia.adapter = adapter
+            //adapter.actualizarDatos(lstAsistencia)
+        }
+        //return lst
+    }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         val inflater = menuInflater

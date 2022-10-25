@@ -39,6 +39,7 @@ class AsistenciaBajarItemTarAdapter(var lstAsistencia:ArrayList<Asistencia>? = n
         val lblInasistencia : TextView = view.findViewById(R.id.lblInasistencia)
         val btnInasistencia : RelativeLayout = view.findViewById(R.id.btnInasistencia)
         val llContenedor : LinearLayout = view.findViewById(R.id.llContenedor)
+        //val icoEstado:ImageView = view.findViewById(R.id.icoEstado)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -76,8 +77,28 @@ class AsistenciaBajarItemTarAdapter(var lstAsistencia:ArrayList<Asistencia>? = n
         if(items.ascenso_t == "0" && items.descenso_t == "0"){
             holder.llContenedor.setBackgroundColor(Color.parseColor("#ffffff"))
         }
-
-
+        if(items.asistencia=="0"){
+            holder.imgFotoEstudiante.isEnabled=false
+            holder.llContenedor.setBackgroundColor(Color.parseColor("#ff4122"))
+            holder.btnInasistencia.visibility=View.GONE
+        }else{
+            holder.imgFotoEstudiante.isEnabled=true
+            holder.btnInasistencia.visibility=View.VISIBLE
+        }
+        //No ha salido, pero está por salir
+        /*if(items.salida=="3"){
+            holder.icoEstado.setImageResource(R.drawable.huellas)
+        }
+        //Ya salió
+        if(items.salida=="2"){
+            holder.icoEstado.setImageResource(R.drawable.footstep_verde)
+        }*/
+        if(items.salida=="3"){
+            holder.llContenedor.setBackgroundColor(Color.parseColor("#f1b04c"))
+        }
+        if(items.salida=="2"){
+            holder.llContenedor.setBackgroundColor(Color.parseColor("#89cff0"))
+        }
 
         holder.imgFotoEstudiante.setOnClickListener {
             //La ruta va comenzando, recogiendo niños en sus casas
