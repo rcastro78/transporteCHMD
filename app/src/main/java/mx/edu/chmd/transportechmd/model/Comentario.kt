@@ -1,6 +1,4 @@
 package mx.edu.chmd.transportechmd.model
-
-class Comentario : ArrayList<ComentarioItem>()
-data class ComentarioItem(
+data class Comentario(
     val comentario: String
 )

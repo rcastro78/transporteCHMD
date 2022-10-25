@@ -11,7 +11,6 @@ import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
-import android.view.View
 import android.widget.Button
 import android.widget.SearchView
 import android.widget.TextView
@@ -22,10 +21,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import kotlinx.android.synthetic.main.activity_asistencia_man.*
-import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.view_enviar_comentario.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import mx.edu.chmd.transportechmd.R
 import mx.edu.chmd.transportechmd.SeleccionRutaActivity
@@ -33,7 +31,7 @@ import mx.edu.chmd.transportechmd.adapter.AsistenciaItemAdapter
 import mx.edu.chmd.transportechmd.db.AsistenciaDAO
 import mx.edu.chmd.transportechmd.db.TransporteDB
 import mx.edu.chmd.transportechmd.model.Asistencia
-import mx.edu.chmd.transportechmd.model.ComentarioItem
+import mx.edu.chmd.transportechmd.model.Comentario
 import mx.edu.chmd.transportechmd.networking.ITransporte
 import mx.edu.chmd.transportechmd.networking.TransporteAPI
 import mx.edu.chmd.transportechmd.servicios.NetworkChangeReceiver
@@ -271,23 +269,26 @@ class AsistenciaManActivity : AppCompatActivity() {
 
 
 
-    fun getComentario(id_ruta: String):String{
+    fun getComentario(id_ruta: String,txt:TextView){
         var comentario:String=""
         iTransporte.getComentario(id_ruta)
-            .enqueue(object : Callback<ComentarioItem> {
-                override fun onResponse(call: Call<ComentarioItem>, response: Response<ComentarioItem>) {
+            .enqueue(object : Callback<List<Comentario>> {
+                override fun onResponse(call: Call<List<Comentario>>, response: Response<List<Comentario>>) {
+
                     if (response != null) {
-                        comentario = response.body()!!.comentario
+                        response.body()!!.forEach { c->
+                            txt.setText(c.comentario)
+                        }
                     }
 
                 }
 
-                override fun onFailure(call: Call<ComentarioItem>, t: Throwable) {
-                    comentario=""
+                override fun onFailure(call: Call<List<Comentario>>, t: Throwable) {
+                    comentario=t.message!!
                 }
 
             })
-        return comentario
+
     }
 
 
@@ -404,14 +405,11 @@ class AsistenciaManActivity : AppCompatActivity() {
             var c = ""
             //Recuperar el comentario de la ruta
             CoroutineScope(Dispatchers.IO).launch {
-                c = getComentario(id_ruta)
-                Thread.sleep(2000)
-                Log.d("COMENTARIO",c)
+                getComentario(id_ruta,txtComentario!!)
             }
 
-            CoroutineScope(Dispatchers.Main).launch{
-                txtComentario!!.text = c
-            }
+
+
 
             btnComment!!.setOnClickListener {
                 //Enviar comentario de la ruta

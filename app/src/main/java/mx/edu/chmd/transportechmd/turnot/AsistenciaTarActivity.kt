@@ -11,22 +11,26 @@ import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.Button
 import android.widget.SearchView
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import kotlinx.android.synthetic.main.activity_asistencia_man.*
+import kotlinx.android.synthetic.main.view_enviar_comentario.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import mx.edu.chmd.transportechmd.R
 import mx.edu.chmd.transportechmd.SeleccionRutaActivity
-import mx.edu.chmd.transportechmd.adapter.AsistenciaItemAdapter
 import mx.edu.chmd.transportechmd.adapter.AsistenciaItemTarAdapter
 import mx.edu.chmd.transportechmd.db.AsistenciaDAO
 import mx.edu.chmd.transportechmd.db.TransporteDB
 import mx.edu.chmd.transportechmd.model.Asistencia
+import mx.edu.chmd.transportechmd.model.Comentario
 import mx.edu.chmd.transportechmd.networking.ITransporte
 import mx.edu.chmd.transportechmd.networking.TransporteAPI
 import mx.edu.chmd.transportechmd.servicios.NetworkChangeReceiver
@@ -238,11 +242,11 @@ class AsistenciaTarActivity : AppCompatActivity() {
         asistenciaViewModel.enviaAsistenciaCompletaMan(id_ruta)
     }
 
-    fun enviarInasistencia(id_alumno:String, id_ruta: String){
-        asistenciaViewModel.getAlumnoInasistenciaResultObserver().observe(this){result->
+    fun enviarComentario(id_ruta: String,c:String){
+        asistenciaViewModel.getComentarioResultObserver().observe(this){r->
 
         }
-        asistenciaViewModel.enviaInasistenciaAlumnoTar(id_alumno, id_ruta)
+        asistenciaViewModel.enviaComentario(id_ruta, c)
     }
 
     //fin
@@ -350,6 +354,33 @@ class AsistenciaTarActivity : AppCompatActivity() {
         if (item.itemId == R.id.action_back) {
             onBackPressed()
         }
+
+        if (item.itemId == R.id.action_msj) {
+            val btmComentarios = BottomSheetDialog(this@AsistenciaTarActivity)
+            btmComentarios.setContentView(R.layout.view_enviar_comentario)
+            val txtComentario: TextView? = btmComentarios.findViewById(R.id.txtComentario)
+            val btnComment: Button? = btmComentarios.findViewById(R.id.btnComment)
+            var c = ""
+            //Recuperar el comentario de la ruta
+            CoroutineScope(Dispatchers.IO).launch {
+                getComentario(id_ruta,txtComentario!!)
+            }
+
+            CoroutineScope(Dispatchers.Main).launch{
+                txtComentario!!.text = c
+            }
+
+            btnComment!!.setOnClickListener {
+                //Enviar comentario de la ruta
+                if(txtComentario!!.text.isNotEmpty()){
+                    val c = txtComentario.text.toString()
+                    enviarComentario(id_ruta,c)
+
+                }
+                btmComentarios.dismiss()
+            }
+            btmComentarios.show()
+        }
         if (item.itemId == R.id.action_subir) {
             AlertDialog.Builder(this)
                 .setTitle("CHMD - Transporte")
@@ -385,6 +416,28 @@ class AsistenciaTarActivity : AppCompatActivity() {
             1
         else
             0
+
+    }
+
+    fun getComentario(id_ruta: String,txt:TextView){
+        var comentario:String=""
+        iTransporte.getComentario(id_ruta)
+            .enqueue(object : Callback<List<Comentario>> {
+                override fun onResponse(call: Call<List<Comentario>>, response: Response<List<Comentario>>) {
+
+                    if (response != null) {
+                        response.body()!!.forEach { c->
+                            txt.setText(c.comentario)
+                        }
+                    }
+
+                }
+
+                override fun onFailure(call: Call<List<Comentario>>, t: Throwable) {
+                    comentario=t.message!!
+                }
+
+            })
 
     }
 }

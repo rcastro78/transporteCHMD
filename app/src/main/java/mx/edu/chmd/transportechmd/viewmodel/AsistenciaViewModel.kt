@@ -3,7 +3,7 @@ package mx.edu.chmd.transportechmd.viewmodel
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import mx.edu.chmd.transportechmd.model.ComentarioItem
+import mx.edu.chmd.transportechmd.model.Comentario
 
 import mx.edu.chmd.transportechmd.networking.ITransporte
 import mx.edu.chmd.transportechmd.networking.TransporteAPI
@@ -19,7 +19,7 @@ class AsistenciaViewModel: ViewModel() {
     var alumnoInasistenciaResultData: MutableLiveData<String>
     var alumnoReiniciaAsistenciaResultData: MutableLiveData<String>
     var asistenciaCompletaResultData: MutableLiveData<String>
-    var comentarioResultData: MutableLiveData<ComentarioItem>
+    var comentarioResultData: MutableLiveData<Comentario>
     private var iTransporteService: ITransporte
 
     init {
@@ -50,7 +50,7 @@ class AsistenciaViewModel: ViewModel() {
         return alumnoInasistenciaResultData
     }
 
-    fun getComentarioResultObserver(): MutableLiveData<ComentarioItem> {
+    fun getComentarioResultObserver(): MutableLiveData<Comentario> {
         return comentarioResultData
     }
 

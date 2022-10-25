@@ -19,7 +19,7 @@ import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
-import kotlinx.android.synthetic.main.activity_asistencia_man.*
+import kotlinx.android.synthetic.main.activity_asistencia_tar_drop.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -29,6 +29,7 @@ import mx.edu.chmd.transportechmd.adapter.AsistenciaBajarItemTarAdapter
 import mx.edu.chmd.transportechmd.db.AsistenciaDAO
 import mx.edu.chmd.transportechmd.db.TransporteDB
 import mx.edu.chmd.transportechmd.model.Asistencia
+import mx.edu.chmd.transportechmd.model.Comentario
 import mx.edu.chmd.transportechmd.networking.ITransporte
 import mx.edu.chmd.transportechmd.networking.TransporteAPI
 import mx.edu.chmd.transportechmd.servicios.NetworkChangeReceiver
@@ -96,7 +97,7 @@ class AsistenciaTarDropActivity : AppCompatActivity() {
                 )
                 .setPositiveButton("Aceptar") { _, _ ->
 
-                    val db = TransporteDB.getInstance(this.application)
+                    //val db = TransporteDB.getInstance(this.application)
                     //cerrar registro en la base, ponerle estatus=1
                     CoroutineScope(Dispatchers.IO).launch {
                         db.iRutaDAO.cambiaEstatusRuta("2",id_ruta)
@@ -233,6 +234,12 @@ class AsistenciaTarDropActivity : AppCompatActivity() {
         asistenciaViewModel.enviaReinicioBajadaAlumnoTar(id_alumno, id_ruta)
     }
 
+    fun enviarComentario(id_ruta: String,c:String){
+        asistenciaViewModel.getComentarioResultObserver().observe(this){r->
+
+        }
+        asistenciaViewModel.enviaComentario(id_ruta, c)
+    }
 
     /*fun enviarAsistencia(id_alumno:String, id_ruta: String){
         asistenciaViewModel.getAlumnoAsistenciaResultObserver().observe(this){result->
@@ -369,17 +376,33 @@ class AsistenciaTarDropActivity : AppCompatActivity() {
         }
 
         if (item.itemId == R.id.action_msj) {
-            //enviar comentario de la ruta
             val btmComentarios = BottomSheetDialog(this@AsistenciaTarDropActivity)
             btmComentarios.setContentView(R.layout.view_enviar_comentario)
             val txtComentario: TextView? = btmComentarios.findViewById(R.id.txtComentario)
             val btnComment: Button? = btmComentarios.findViewById(R.id.btnComment)
-            btnComment!!.setOnClickListener {
+            var c = ""
+            //Recuperar el comentario de la ruta
+            CoroutineScope(Dispatchers.IO).launch {
+                getComentario(id_ruta,txtComentario!!)
 
             }
-            btmComentarios.show()
 
+            CoroutineScope(Dispatchers.Main).launch{
+                txtComentario!!.text = c
+            }
+
+            btnComment!!.setOnClickListener {
+                //Enviar comentario de la ruta
+                if(txtComentario!!.text.isNotEmpty()){
+                    val c = txtComentario.text.toString()
+                    enviarComentario(id_ruta,c)
+
+                }
+                btmComentarios.dismiss()
+            }
+            btmComentarios.show()
         }
+
         if (item.itemId == R.id.action_subir) {
             AlertDialog.Builder(this)
                 .setTitle("CHMD - Transporte")
@@ -414,6 +437,28 @@ class AsistenciaTarDropActivity : AppCompatActivity() {
             1
         else
             0
+
+    }
+
+    fun getComentario(id_ruta: String,txt:TextView){
+        var comentario:String=""
+        iTransporte.getComentario(id_ruta)
+            .enqueue(object : Callback<List<Comentario>> {
+                override fun onResponse(call: Call<List<Comentario>>, response: Response<List<Comentario>>) {
+
+                    if (response != null) {
+                        response.body()!!.forEach { c->
+                            txt.setText(c.comentario)
+                        }
+                    }
+
+                }
+
+                override fun onFailure(call: Call<List<Comentario>>, t: Throwable) {
+                    comentario=t.message!!
+                }
+
+            })
 
     }
 

@@ -25,11 +25,10 @@ import kotlinx.coroutines.launch
 import mx.edu.chmd.transportechmd.R
 import mx.edu.chmd.transportechmd.SeleccionRutaActivity
 import mx.edu.chmd.transportechmd.adapter.AsistenciaBajarItemAdapter
-import mx.edu.chmd.transportechmd.adapter.AsistenciaItemAdapter
 import mx.edu.chmd.transportechmd.db.AsistenciaDAO
 import mx.edu.chmd.transportechmd.db.TransporteDB
 import mx.edu.chmd.transportechmd.model.Asistencia
-import mx.edu.chmd.transportechmd.model.ComentarioItem
+import mx.edu.chmd.transportechmd.model.Comentario
 import mx.edu.chmd.transportechmd.networking.ITransporte
 import mx.edu.chmd.transportechmd.networking.TransporteAPI
 import mx.edu.chmd.transportechmd.servicios.NetworkChangeReceiver
@@ -358,8 +357,7 @@ class AsistenciaManDropActivity : AppCompatActivity() {
 
             //Recuperar el comentario de la ruta
             CoroutineScope(Dispatchers.IO).launch {
-                val c = getComentario(id_ruta)
-                txtComentario!!.setText(c)
+               getComentario(id_ruta,txtComentario!!)
             }
 
 
@@ -421,24 +419,26 @@ class AsistenciaManDropActivity : AppCompatActivity() {
 
 
 
-    fun getComentario(id_ruta: String):String{
+    fun getComentario(id_ruta: String,txt:TextView){
         var comentario:String=""
         iTransporte.getComentario(id_ruta)
-            .enqueue(object : Callback<ComentarioItem> {
-                override fun onResponse(call: Call<ComentarioItem>, response: Response<ComentarioItem>) {
-                    Toast.makeText(application,response.code().toString(),Toast.LENGTH_LONG).show()
-                    if (response.code()==200) {
-                        comentario = response.body()!!.comentario
+            .enqueue(object : Callback<List<Comentario>> {
+                override fun onResponse(call: Call<List<Comentario>>, response: Response<List<Comentario>>) {
 
+                    if (response != null) {
+                        response.body()!!.forEach { c->
+                            txt.setText(c.comentario)
+                        }
                     }
+
                 }
 
-                override fun onFailure(call: Call<ComentarioItem>, t: Throwable) {
+                override fun onFailure(call: Call<List<Comentario>>, t: Throwable) {
                     comentario=t.message!!
                 }
 
             })
-        return comentario
+
     }
 
 

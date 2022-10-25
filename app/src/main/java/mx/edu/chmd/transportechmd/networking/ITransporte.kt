@@ -1,9 +1,6 @@
 package mx.edu.chmd.transportechmd.networking
 
-import mx.edu.chmd.transportechmd.model.Asistencia
-import mx.edu.chmd.transportechmd.model.ComentarioItem
-import mx.edu.chmd.transportechmd.model.Ruta
-import mx.edu.chmd.transportechmd.model.Usuario
+import mx.edu.chmd.transportechmd.model.*
 import retrofit2.Call
 import retrofit2.http.*
 
@@ -43,7 +40,7 @@ interface ITransporte {
     @GET("registraComentario.php")
     fun enviarComentario(@Query("id_ruta") idRuta: String?,@Query("comentario") comentario: String?):Call<String>
     @GET("getComentario.php")
-    fun getComentario(@Query("id_ruta") idRuta: String?):Call<ComentarioItem>
+    fun getComentario(@Query("id_ruta") idRuta: String?):Call<List<Comentario>>
 
 
 
