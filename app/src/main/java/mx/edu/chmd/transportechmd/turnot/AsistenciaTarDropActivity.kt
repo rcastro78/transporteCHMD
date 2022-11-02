@@ -1,20 +1,27 @@
 package mx.edu.chmd.transportechmd.turnot
 
 import android.app.AlertDialog
+import android.app.Dialog
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.graphics.Typeface
 import android.net.ConnectivityManager
+import android.nfc.*
+import android.nfc.tech.*
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Parcelable
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.view.Window
 import android.widget.Button
 import android.widget.SearchView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -33,6 +40,7 @@ import mx.edu.chmd.transportechmd.model.Comentario
 import mx.edu.chmd.transportechmd.networking.ITransporte
 import mx.edu.chmd.transportechmd.networking.TransporteAPI
 import mx.edu.chmd.transportechmd.servicios.NetworkChangeReceiver
+import mx.edu.chmd.transportechmd.utils.NFCDecrypt
 import mx.edu.chmd.transportechmd.viewmodel.AsistenciaViewModel
 import mx.edu.chmd.transportechmd.viewmodel.RutaViewModel
 import retrofit2.Call
@@ -46,14 +54,38 @@ class AsistenciaTarDropActivity : AppCompatActivity() {
     private lateinit var asistenciaViewModel: AsistenciaViewModel
     private lateinit var rutaViewModel: RutaViewModel
     private var sharedPreferences: SharedPreferences? = null
+    private var nfcAdapter: NfcAdapter? = null
+    private lateinit var nfcDecrypt: NFCDecrypt
     var id_ruta:String=""
     lateinit var iTransporte: ITransporte
     private var networkChangeReceiver: NetworkChangeReceiver = NetworkChangeReceiver()
-
+    private val techList = arrayOf(
+        arrayOf(
+            NfcA::class.java.name,
+            NfcB::class.java.name,
+            NfcF::class.java.name,
+            NfcV::class.java.name,
+            IsoDep::class.java.name,
+            MifareClassic::class.java.name,
+            MifareUltralight::class.java.name, Ndef::class.java.name
+        )
+    )
     override fun onStart() {
         super.onStart()
         val filter = IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
         registerReceiver(networkChangeReceiver, filter)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        lstAsistencia.clear()
+
+
+        val manager = getSystemService(Context.NFC_SERVICE) as NfcManager
+        nfcAdapter = manager.defaultAdapter
+        if(nfcAdapter!=null && nfcAdapter!!.isEnabled) {
+            nfcAdapter!!.disableForegroundDispatch(this)
+        }
     }
 
     override fun onStop() {
@@ -63,8 +95,109 @@ class AsistenciaTarDropActivity : AppCompatActivity() {
     public override fun onResume() {
         super.onResume()
         getAsistencia(id_ruta)
+        //******************************
+        //INICIO LECTURA NFC
+        //******************************
+
+        val manager = getSystemService(Context.NFC_SERVICE) as NfcManager
+        nfcAdapter = manager.defaultAdapter
+        if(nfcAdapter!=null && nfcAdapter!!.isEnabled){
+
+            val pendingIntent = PendingIntent.getActivity(
+                this,
+                0,
+                Intent(this, javaClass).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                PendingIntent.FLAG_MUTABLE
+            )
+            // creating intent receiver for NFC events:
+            val filter = IntentFilter()
+            filter.addAction(NfcAdapter.ACTION_TAG_DISCOVERED)
+            filter.addAction(NfcAdapter.ACTION_NDEF_DISCOVERED)
+            filter.addAction(NfcAdapter.ACTION_TECH_DISCOVERED)
+            // enabling foreground dispatch for getting intent from NFC event:
+            val nfcAdapter = NfcAdapter.getDefaultAdapter(this)
+            nfcAdapter.enableForegroundDispatch(this, pendingIntent, arrayOf(filter), techList)
+        }else{
+
+        }
     }
 
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        if (intent!!.action == NfcAdapter.ACTION_TAG_DISCOVERED) {
+            Log.d("onNewIntent", "2")
+
+            //if(getIntent().hasExtra(NfcAdapter.EXTRA_TAG)){
+            val tagN = intent.getParcelableExtra<Parcelable>(NfcAdapter.EXTRA_TAG)
+            if (tagN != null) {
+                Log.d("LECTURA 0", "Parcelable OK")
+                val msgs: Array<NdefMessage>
+                val empty = ByteArray(0)
+                val id = intent.getByteArrayExtra(NfcAdapter.EXTRA_ID)
+                val payload = nfcDecrypt.dumpTagData(tagN).toByteArray()
+                val record = NdefRecord(NdefRecord.TNF_UNKNOWN, empty, id, payload)
+                val msg = NdefMessage(arrayOf(record))
+                msgs = arrayOf(msg)
+                Log.d("LECTURA",nfcDecrypt.bytesToHexString(id))
+
+                CoroutineScope(Dispatchers.IO).launch {
+                    val db = TransporteDB.getInstance(application)
+                    if(db.iAsistenciaDAO.existeTarjeta(nfcDecrypt.bytesToHexString(id),id_ruta)==1) {
+                        db.iAsistenciaDAO.bajaTurnoTarNFC(
+                            id_ruta,
+                            nfcDecrypt.bytesToHexString(id),
+                            getProcesable()
+                        )
+                        //Marcar en el servidor asistencia del alumno encontrado
+                        val alumno = db.iAsistenciaDAO.getAlumnoByTarjeta(nfcDecrypt.bytesToHexString(id),id_ruta)
+                        Log.d("LECTURA",alumno[0].idAlumno)
+                        if(hayConexion())
+                            CoroutineScope(Dispatchers.Main).launch {
+                                enviarBajada(alumno[0].idAlumno, id_ruta)
+                            }
+                        Thread.sleep(2000)
+                        getAsistencia(id_ruta)
+                    }else{
+                        CoroutineScope(Dispatchers.Main).launch {
+                            Toast.makeText(applicationContext,"Esta tarjeta no existe en esta ruta",
+                                Toast.LENGTH_LONG).show()
+                        }
+
+                    }
+                }
+
+                CoroutineScope(Dispatchers.Main).launch {
+                    adapter.notifyDataSetChanged()
+                }
+
+            } else {
+
+            }
+            val messages1 = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)
+            if (messages1 != null) {
+                Log.d("LECTURA", "Found " + messages1.size + " NDEF messages")
+            } else {
+                Log.d("LECTURA", "Not EXTRA_NDEF_MESSAGES")
+            }
+            val tag = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
+            val ndef = Ndef.get(tag)
+            if (ndef != null) {
+                Log.d("LECTURA:", "NfcAdapter.EXTRA_TAG")
+                val messages = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)
+                if (messages != null) {
+                    Log.d("LECTURA", "Found " + messages.size + " NDEF messages")
+                }
+            } else {
+                Log.d("LECTURA", "Write to an unformatted tag not implemented")
+            }
+
+
+            //mTextView.setText( "NFC Tag\n" + ByteArrayToHexString(intent.getByteArrayExtra(NfcAdapter.EXTRA_TAG)));
+        }
+    }
+    //******************************
+    //FIN LECTURA NFC
+    //******************************
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -76,6 +209,7 @@ class AsistenciaTarDropActivity : AppCompatActivity() {
             findViewById<Toolbar>(R.id.tool_bar) // Attaching the layout to the toolbar object
         setSupportActionBar(toolbar)
         iTransporte = TransporteAPI.getCHMDService()!!
+        nfcDecrypt = NFCDecrypt()
         asistenciaViewModel = ViewModelProvider(this)[AsistenciaViewModel::class.java]
         rutaViewModel = ViewModelProvider(this)[RutaViewModel::class.java]
         val tf = Typeface.createFromAsset(getAssets(),"fonts/Nunito-Bold.ttf")
@@ -155,10 +289,11 @@ class AsistenciaTarDropActivity : AppCompatActivity() {
                 getAsistenciaRutaTar(id_ruta)
                 Thread.sleep(3500)
                 Log.d("TAREA B","llamada")
-                getAsistencia(id_ruta)
                 Thread.sleep(2000)
                 Log.d("TAREA C","llamada")
                 swpContainer.isRefreshing=false
+                getAsistencia2(id_ruta)
+
             }
 
         }
@@ -270,9 +405,10 @@ class AsistenciaTarDropActivity : AppCompatActivity() {
         var novan:Int=0
         var totalAlumnos:Int=0
         //var lst:ArrayList<Asistencia> = ArrayList()
+        lstAsistencia.clear()
         CoroutineScope(Dispatchers.IO).launch {
             val asistentes = db.iAsistenciaDAO.getAlumnosBajarTarde(id_ruta)
-            totalAlumnos = asistentes.size
+            totalAlumnos = db.iAsistenciaDAO.getTotalidadAsistenciaEnBusBajadaTarde(id_ruta)
             asistentes.forEach{ alumno->
                 if(alumno.descenso_t=="1")
                     bajan++
@@ -281,7 +417,7 @@ class AsistenciaTarDropActivity : AppCompatActivity() {
                     novan++
 
                 lstAsistencia.add(
-                    Asistencia(alumno.ascenso, alumno.ascenso_t,
+                    Asistencia(alumno.tarjeta,alumno.ascenso, alumno.ascenso_t,
                         "",alumno.descenso,alumno.descenso_t,alumno.domicilio,
                         alumno.domicilio_s,"","",alumno.foto,alumno.grado,
                         alumno.grupo,alumno.horaManana,alumno.horaRegreso,alumno.idAlumno,
@@ -299,18 +435,58 @@ class AsistenciaTarDropActivity : AppCompatActivity() {
             //adapter.clear()
             //adapter.addAll(lstAsistencia)
 
-            if(bajan == totalAlumnos - novan){
+            if(bajan == totalAlumnos - novan  && totalAlumnos>0){
                 btnCerrarRegistro.setBackgroundResource(R.drawable.boton_redondeado)
                 btnCerrarRegistro.isEnabled = true
-                btnCerrarRegistro.text="Cerrar registro"
+                btnCerrarRegistro.text="Cerrar ruta"
+
             }
 
-            lblTotales.setText("$bajan/${lstAsistencia.size}")
+
 
             adapter = AsistenciaBajarItemTarAdapter(lstAsistencia,this@AsistenciaTarDropActivity)
             rvAsistencia.layoutManager = LinearLayoutManager(this@AsistenciaTarDropActivity)
             rvAsistencia.adapter = adapter
             //adapter.actualizarDatos(lstAsistencia)
+            lblTotales.setText("$bajan/${lstAsistencia.size}")
+        }
+        //return lst
+    }
+    fun getAsistencia2(id_ruta:String)/*:ArrayList<Asistencia>*/{
+        val db = TransporteDB.getInstance(this.application)
+
+        //var lst:ArrayList<Asistencia> = ArrayList()
+        CoroutineScope(Dispatchers.IO).launch {
+            val asistentes = db.iAsistenciaDAO.getAlumnosBajarTarde(id_ruta)
+
+            asistentes.forEach{ alumno->
+
+
+                lstAsistencia.add(
+                    Asistencia(alumno.tarjeta,alumno.ascenso, alumno.ascenso_t,
+                        "",alumno.descenso,alumno.descenso_t,alumno.domicilio,
+                        alumno.domicilio_s,"","",alumno.foto,alumno.grado,
+                        alumno.grupo,alumno.horaManana,alumno.horaRegreso,alumno.idAlumno,
+                        alumno.idRuta,alumno.idRuta,alumno.nivel,alumno.nombreAlumno,alumno.ordenIn,
+                        alumno.ordenOut,alumno.salida,"")
+                )
+            }
+
+            //lst = lstAsistencia
+            //adapter.notifyDataSetChanged()
+
+        }
+
+        CoroutineScope(Dispatchers.Main).launch{
+            //adapter.clear()
+            //adapter.addAll(lstAsistencia)
+
+
+            adapter = AsistenciaBajarItemTarAdapter(lstAsistencia,this@AsistenciaTarDropActivity)
+            rvAsistencia.layoutManager = LinearLayoutManager(this@AsistenciaTarDropActivity)
+            rvAsistencia.adapter = adapter
+            //adapter.actualizarDatos(lstAsistencia)
+
         }
         //return lst
     }
@@ -325,7 +501,7 @@ class AsistenciaTarDropActivity : AppCompatActivity() {
             totalAlumnos = asistentes.size
             asistentes.forEach{ alumno->
                 lstAsistencia.add(
-                    Asistencia(alumno.ascenso, alumno.ascenso_t,
+                    Asistencia(alumno.tarjeta,alumno.ascenso, alumno.ascenso_t,
                         "",alumno.descenso,alumno.descenso_t,alumno.domicilio,
                         alumno.domicilio_s,"","",alumno.foto,alumno.grado,
                         alumno.grupo,alumno.horaManana,alumno.horaRegreso,alumno.idAlumno,
@@ -404,7 +580,31 @@ class AsistenciaTarDropActivity : AppCompatActivity() {
         }
 
         if (item.itemId == R.id.action_subir) {
-            AlertDialog.Builder(this)
+
+            val dialog = Dialog(this@AsistenciaTarDropActivity)
+            dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+            dialog.setCancelable(false)
+            dialog.setContentView(R.layout.dialog_item_bajada_masiva)
+            val btnCancelarBajada = dialog.findViewById<Button>(R.id.btnCancelarBajada)
+            val btnBajar = dialog.findViewById<Button>(R.id.btnBajar)
+            val lblDialog = dialog.findViewById<TextView>(R.id.lblDialog)
+            val tf = Typeface.createFromAsset(assets,"fonts/Nunito-Regular.ttf")
+            btnCancelarBajada.typeface=tf
+            btnBajar.typeface=tf
+            lblDialog.typeface=tf
+            btnCancelarBajada.setOnClickListener {
+                dialog.dismiss()
+            }
+            btnBajar.setOnClickListener {
+                val db = TransporteDB.getInstance(this.application)
+                CoroutineScope(Dispatchers.IO).launch {
+                    db.iAsistenciaDAO.bajanTodosTar(id_ruta,getProcesable())
+                }
+                recrear()
+            }
+            dialog.show()
+
+        /*AlertDialog.Builder(this)
                 .setTitle("CHMD - Transporte")
                 .setMessage(
                     "¿Desea efectuar la bajada de todos los alumnos de la ruta?"
@@ -424,7 +624,7 @@ class AsistenciaTarDropActivity : AppCompatActivity() {
 
                 }
 
-                .show()
+                .show()*/
 
         }
         return true
@@ -436,7 +636,14 @@ class AsistenciaTarDropActivity : AppCompatActivity() {
         return if(netInfo != null && netInfo.isConnectedOrConnecting)
             1
         else
-            0
+            -1
+
+    }
+
+    fun hayConexion(): Boolean {
+        val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val netInfo = cm.activeNetworkInfo
+        return netInfo != null && netInfo.isConnectedOrConnecting
 
     }
 

@@ -36,8 +36,21 @@ class AsistenciaDAO(
 
     @Dao
     interface IAsistenciaDAO {
+
+        @Query("SELECT * FROM $TABLE_NAME WHERE tarjeta=:tarjeta AND idRuta=:idRuta")
+        fun getAlumnoByTarjeta(tarjeta: String,idRuta:String):List<AsistenciaDAO>
+
         @Query("SELECT * FROM $TABLE_NAME WHERE idRuta=:idRuta ORDER BY CAST(ascenso as INTEGER), CAST(ordenIn as INTEGER)")
         fun getAsistencia(idRuta: String):List<AsistenciaDAO>
+
+        @Query("SELECT COUNT(*) FROM $TABLE_NAME WHERE idRuta=:idRuta AND asistencia='1'")
+        fun getTotalidadAsistenciaEnBus(idRuta: String):Int
+
+        @Query("SELECT COUNT(*) FROM $TABLE_NAME WHERE idRuta=:idRuta AND asistencia='1' AND ascenso='1' AND descenso='0'")
+        fun getTotalidadAsistenciaEnBusBajada(idRuta: String):Int
+
+        @Query("SELECT COUNT(*) FROM $TABLE_NAME WHERE idRuta=:idRuta AND asistencia='1' AND ascenso_t='1' AND descenso_t='0'")
+        fun getTotalidadAsistenciaEnBusBajadaTarde(idRuta: String):Int
 
         @Query("SELECT * FROM $TABLE_NAME WHERE idRuta=:idRuta AND nombreAlumno LIKE '%' || :nombre || '%' ORDER BY CAST(ascenso as INTEGER), CAST(ordenIn as INTEGER)")
         fun buscarAlumnos(idRuta: String,nombre:String):List<AsistenciaDAO>
@@ -53,11 +66,17 @@ class AsistenciaDAO(
         fun guardaAsistencia(asistenciaDAO: AsistenciaDAO)
 
 
+        @Query("SELECT COUNT(*) FROM $TABLE_NAME WHERE idRuta=:idRuta AND tarjeta=:tarjeta")
+        fun existeTarjeta(tarjeta: String,idRuta: String):Int
+
 
 
         //turno mañana
         @Query("UPDATE $TABLE_NAME SET ascenso=1 , descenso=0,procesado=:procesado WHERE idRuta=:idRuta AND idAlumno=:idAlumno AND ascenso=0 AND descenso=0")
         fun asisteTurnoMan(idRuta: String, idAlumno: String,procesado:Int)
+
+        @Query("UPDATE $TABLE_NAME SET ascenso=1 , descenso=0,procesado=:procesado WHERE idRuta=:idRuta AND tarjeta=:tarjeta AND ascenso=0 AND descenso=0")
+        fun asisteTurnoManNFC(idRuta: String, tarjeta: String,procesado:Int)
 
         @Query("UPDATE $TABLE_NAME SET ascenso=1 , descenso=0,procesado=:procesado WHERE idRuta=:idRuta AND ascenso<2 AND descenso<2")
         fun asistenTodosMan(idRuta: String,procesado:Int)
@@ -80,9 +99,15 @@ class AsistenciaDAO(
         @Query("UPDATE $TABLE_NAME SET ascenso=1 , descenso=1,procesado=:procesado WHERE idRuta=:idRuta AND idAlumno=:idAlumno")
         fun bajaTurnoMan(idRuta: String, idAlumno: String,procesado: Int)
 
+        @Query("UPDATE $TABLE_NAME SET ascenso=1 , descenso=1,procesado=:procesado WHERE idRuta=:idRuta AND tarjeta=:tarjeta")
+        fun bajaTurnoManNFC(idRuta: String, tarjeta: String,procesado: Int)
+
         //turno tarde
         @Query("UPDATE $TABLE_NAME SET ascenso_t=1 , descenso_t=0,procesado=:procesado WHERE idRuta=:idRuta AND idAlumno=:idAlumno")
         fun asisteTurnoTar(idRuta: String, idAlumno: String,procesado: Int)
+
+        @Query("UPDATE $TABLE_NAME SET ascenso_t=1 , descenso_t=0,procesado=:procesado WHERE idRuta=:idRuta AND tarjeta=:tarjeta")
+        fun asisteTurnoTarNFC(idRuta: String, tarjeta: String,procesado: Int)
 
         @Query("UPDATE $TABLE_NAME SET ascenso_t=1 , descenso_t=0,procesado=:procesado WHERE idRuta=:idRuta AND ascenso_t<2 AND descenso_t<2")
         fun asistenTodosTar(idRuta: String,procesado: Int)
@@ -101,6 +126,9 @@ class AsistenciaDAO(
 
         @Query("UPDATE $TABLE_NAME SET ascenso_t=1 , descenso_t=1,procesado=:procesado WHERE idRuta=:idRuta AND idAlumno=:idAlumno")
         fun bajaTurnoTar(idRuta: String, idAlumno: String,procesado: Int)
+
+        @Query("UPDATE $TABLE_NAME SET ascenso_t=1 , descenso_t=1,procesado=:procesado WHERE idRuta=:idRuta AND tarjeta=:tarjeta")
+        fun bajaTurnoTarNFC(idRuta: String, tarjeta: String,procesado: Int)
 
         //elimina asistencia
         @Query("DELETE FROM $TABLE_NAME WHERE idRuta=:idRuta")

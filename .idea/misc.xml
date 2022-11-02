@@ -16,6 +16,8 @@
         <entry key="app/src/main/res/layout/activity_asistencia_tar_drop.xml" value="0.16822916666666668" />
         <entry key="app/src/main/res/layout/activity_main.xml" value="0.27853260869565216" />
         <entry key="app/src/main/res/layout/activity_seleccion_ruta.xml" value="0.16822916666666668" />
+        <entry key="app/src/main/res/layout/dialog_item_bajada_masiva.xml" value="0.33" />
+        <entry key="app/src/main/res/layout/dialog_item_subida_masiva.xml" value="0.33" />
         <entry key="app/src/main/res/layout/item_asistencia.xml" value="0.33" />
         <entry key="app/src/main/res/layout/item_ruta.xml" value="0.5" />
         <entry key="app/src/main/res/layout/tool_bar.xml" value="0.27853260869565216" />

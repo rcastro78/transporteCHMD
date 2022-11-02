@@ -1,6 +1,7 @@
 package mx.edu.chmd.transportechmd.model
 
 data class Asistencia(
+    val tarjeta:String,
     val ascenso: String,
     val ascenso_t: String,
     val asistencia: String,

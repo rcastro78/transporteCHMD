@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="160dp"
+    android:weightSum="100">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="80">
+
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/bajar"
+            app:tint="@color/colorPrimaryDark" />
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="20">
+
+        <ImageView android:layout_width="76dp"
+            android:layout_height="32dp"
+            android:src="@drawable/logo2"
+            android:layout_marginTop="12dp"
+            android:layout_centerHorizontal="true"
+            />
+
+        <TextView
+            android:id="@+id/lblDialog"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true"
+            android:layout_marginBottom="80dp"
+            android:text="¿Desea efectuar bajada completa?"
+            android:textColor="@color/colorPrimaryDark" />
+
+
+        <Button
+            android:id="@+id/btnBajar"
+            android:layout_width="128dp"
+            android:layout_height="42dp"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentBottom="true"
+            android:layout_marginRight="16dp"
+            android:layout_marginBottom="12dp"
+            android:background="@drawable/boton_redondeado"
+            android:text="Bajar"
+            android:textAllCaps="false"
+            android:textColor="@android:color/white"
+            app:backgroundTint="@null" />
+
+        <Button
+            android:id="@+id/btnCancelarBajada"
+            android:layout_width="128dp"
+            android:layout_height="42dp"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentBottom="true"
+            android:layout_marginLeft="16dp"
+            android:layout_marginBottom="12dp"
+
+            android:background="@drawable/boton_redondeado_disable"
+            android:text="Cancelar"
+            android:textAllCaps="false"
+            android:textColor="@android:color/white"
+            app:backgroundTint="@null" />
+
+
+    </RelativeLayout>
+</LinearLayout>

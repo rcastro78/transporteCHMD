@@ -115,12 +115,19 @@ class AsistenciaItemAdapter(var lstAsistencia:ArrayList<Asistencia>? = null, var
         if(items.asistencia=="0"){
             holder.imgFotoEstudiante.isEnabled=false
             holder.llContenedor.setBackgroundColor(Color.parseColor("#ff4122"))
-            holder.btnInasistencia.visibility=View.GONE
-        }else{
-            holder.imgFotoEstudiante.isEnabled=true
-            holder.btnInasistencia.visibility=View.VISIBLE
+            holder.btnInasistencia.setBackgroundColor(Color.parseColor("#ff4122"))
+            holder.lblInasistencia.text="No asistió"
+
         }
 
+        //Entró caminando (color aqua)
+        if(items.asistencia=="2"){
+            holder.imgFotoEstudiante.isEnabled=false
+            holder.llContenedor.setBackgroundColor(Color.parseColor("#7adfb5"))
+            holder.btnInasistencia.setBackgroundColor(Color.parseColor("#7adfb5"))
+            holder.lblInasistencia.text="Entró por otro medio"
+        }
+        //No ha salido, pero está por salir
         if(items.salida=="3"){
             holder.llContenedor.setBackgroundColor(Color.parseColor("#f1b04c"))
         }

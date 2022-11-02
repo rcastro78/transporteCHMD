@@ -63,9 +63,10 @@ class MainActivity : AppCompatActivity() {
         lblHeader.typeface = tf
         btnLogin.typeface = tf
         lblEstado.typeface = tf
+        txtEmail.setText("lnabor@chmd.edu.mx")
+        txtPassword.setText("auxiliar2015")
         //txtEmail.setText("ocana@chmd.edu.mx")
         //txtPassword.setText("auxiliar1997")
-
 
         loginViewModel = ViewModelProvider(this)[LoginViewModel::class.java]
         rutaViewModel = ViewModelProvider(this)[RutaViewModel::class.java]
@@ -132,11 +133,14 @@ class MainActivity : AppCompatActivity() {
                 if(response!=null){
                     val asistencia = response.body()
                     asistencia!!.forEach { alumno->
-                        val a = AsistenciaDAO(0,idRuta,"",alumno.id_alumno,
+                        val a = AsistenciaDAO(0,idRuta,alumno.tarjeta,alumno.id_alumno,
                         alumno.nombre,alumno.domicilio,alumno.hora_manana,"",
                         alumno.ascenso,alumno.descenso,alumno.domicilio_s,alumno.grupo,alumno.grado,
                         alumno.nivel,alumno.foto,false,false,alumno.ascenso_t,alumno.descenso_t,
                         alumno.salida,alumno.orden_in,"",false,false,0,alumno.asistencia)
+
+                        Log.d("ALUMNOS",alumno.nombre)
+
                         CoroutineScope(Dispatchers.IO).launch {
                             db.iAsistenciaDAO.guardaAsistencia(a)
                         }
@@ -156,12 +160,12 @@ class MainActivity : AppCompatActivity() {
                 CoroutineScope(Dispatchers.Main).launch {
                     lblEstado.visibility = View.VISIBLE
                     lblEstado.setText("Descargando alumnos...")
+
                 }
             }
 
             override fun onFailure(call: Call<List<Asistencia>>, t: Throwable) {
-                lblEstado.visibility = View.VISIBLE
-                lblEstado.setText("Ha ocurrido un error. Repórtelo a soporte técnico.")
+                Log.d("ALUMNOS",t.message!!)
             }
 
         })
@@ -188,14 +192,24 @@ class MainActivity : AppCompatActivity() {
                             horaReg = alumno.hora_regreso
                         }
 
+
+                        var tarjeta=""
+                        if(alumno.tarjeta == null){
+                            tarjeta = ""
+                        }else{
+                            tarjeta = alumno.tarjeta
+                        }
+
+
                         var orden_out=""
                         if(alumno.orden_out == null){
-                            orden_out = ""
+                            tarjeta = ""
                         }else{
                             orden_out = alumno.orden_out
                         }
 
-                        val a = AsistenciaDAO(0,idRuta,"",alumno.id_alumno,
+
+                    val a = AsistenciaDAO(0,idRuta,tarjeta,alumno.id_alumno,
                             alumno.nombre,alumno.domicilio,alumno.hora_manana,horaReg,
                             alumno.ascenso,alumno.descenso,alumno.domicilio_s,alumno.grupo,alumno.grado,
                             alumno.nivel,alumno.foto,false,false,alumno.ascenso_t,alumno.descenso_t,
@@ -207,16 +221,18 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 CoroutineScope(Dispatchers.Main).launch {
-                    lblEstado.visibility = View.VISIBLE
-                    lblEstado.setText("Descargando alumnos...")
-                    lblEstado.animate().translationYBy(0.2f)
-                    val intent = Intent(this@MainActivity,SeleccionRutaActivity::class.java)
-                    startActivity(intent)
+
+                    //lblEstado.visibility = View.VISIBLE
+                    //lblEstado.setText("Descargando alumnos...")
+                    //lblEstado.animate().translationYBy(0.2f)
+
                 }
+                val intent = Intent(this@MainActivity,SeleccionRutaActivity::class.java)
+                startActivity(intent)
             }
 
             override fun onFailure(call: Call<List<Asistencia>>, t: Throwable) {
-                TODO("Not yet implemented")
+                Log.d("ALUMNOS",t.message!!)
             }
 
         })
