@@ -71,12 +71,7 @@ class MainActivity : AppCompatActivity() {
         lblHeader.typeface = tf
         btnLogin.typeface = tf
         lblEstado.typeface = tf
-        //txtEmail.setText("lnabor@chmd.edu.mx")
-        //txtPassword.setText("auxiliar2015")
-        //txtEmail.setText("cgutierrez@chmd.edu.mx")
-        //txtPassword.setText("auxiliar2012")
-        //txtEmail.setText("ocana@chmd.edu.mx")
-        //txtPassword.setText("auxiliar1997")
+
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,

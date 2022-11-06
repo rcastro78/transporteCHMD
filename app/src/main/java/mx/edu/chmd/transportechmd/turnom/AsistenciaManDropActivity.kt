@@ -8,7 +8,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.graphics.Typeface
-import android.location.Location
 import android.net.ConnectivityManager
 import android.nfc.*
 import android.nfc.tech.*
@@ -34,7 +33,6 @@ import mx.edu.chmd.transportechmd.SeleccionRutaActivity
 import mx.edu.chmd.transportechmd.adapter.AsistenciaBajarItemAdapter
 import mx.edu.chmd.transportechmd.db.AsistenciaDAO
 import mx.edu.chmd.transportechmd.db.TransporteDB
-import mx.edu.chmd.transportechmd.location.Locator
 import mx.edu.chmd.transportechmd.model.Asistencia
 import mx.edu.chmd.transportechmd.model.Comentario
 import mx.edu.chmd.transportechmd.networking.ITransporte
@@ -226,23 +224,7 @@ class AsistenciaManDropActivity : AppCompatActivity() {
         btnCerrarRegistro.typeface = tf
         lblAscDesc.typeface = tf
         lblTotales.typeface = tf
-        if(hayConexion()){
-            Locator(this, object: Locator.ILocationCallBack{
-                override fun permissionDenied() {
-                    Log.i("Location", "permission  denied")
-                }
 
-                override fun locationSettingFailed() {
-                    Log.i("Location", "setting failed")
-                }
-
-                override fun getLocation(location: Location) {
-                    //Enviar la localización al server
-                    enviarRecorrido(id_ruta,aux_id,location.latitude.toString(),location.longitude.toString(),"0")
-                }
-            })
-
-        }
         //lstAsistencia.clear()
         btnCerrarRegistro.setOnClickListener {
 

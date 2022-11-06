@@ -38,7 +38,6 @@ import mx.edu.chmd.transportechmd.SeleccionRutaActivity
 import mx.edu.chmd.transportechmd.adapter.AsistenciaItemTarAdapter
 import mx.edu.chmd.transportechmd.db.AsistenciaDAO
 import mx.edu.chmd.transportechmd.db.TransporteDB
-import mx.edu.chmd.transportechmd.location.Locator
 import mx.edu.chmd.transportechmd.model.Asistencia
 import mx.edu.chmd.transportechmd.model.Comentario
 import mx.edu.chmd.transportechmd.networking.ITransporte
@@ -544,7 +543,7 @@ class AsistenciaTarActivity : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         val inflater = menuInflater
-        inflater.inflate(R.menu.menu_asistencia_subir, menu)
+        inflater.inflate(R.menu.menu_asistencia_subir_tarde, menu)
 
         // return true so that the menu pop up is opened
         return true
@@ -584,7 +583,7 @@ class AsistenciaTarActivity : AppCompatActivity() {
             }
             btmComentarios.show()
         }
-        if (item.itemId == R.id.action_subir) {
+        /*if (item.itemId == R.id.action_subir) {
 
             val dialog = Dialog(this@AsistenciaTarActivity)
             dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
@@ -632,7 +631,7 @@ class AsistenciaTarActivity : AppCompatActivity() {
 
                 .show()*/
 
-        }
+        }*/
         return true
     }
 
