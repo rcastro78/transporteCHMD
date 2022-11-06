@@ -1,8 +1,10 @@
 package mx.edu.chmd.transportechmd
 
+import android.Manifest
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import android.graphics.Typeface
 import android.net.ConnectivityManager
 import android.os.Bundle
@@ -10,6 +12,8 @@ import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.CoroutineScope
@@ -43,6 +47,10 @@ class MainActivity : AppCompatActivity() {
         super.onStart()
         val filter = IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
         registerReceiver(networkChangeReceiver, filter)
+
+
+
+
     }
 
     override fun onStop() {
@@ -65,8 +73,16 @@ class MainActivity : AppCompatActivity() {
         lblEstado.typeface = tf
         txtEmail.setText("lnabor@chmd.edu.mx")
         txtPassword.setText("auxiliar2015")
+        //txtEmail.setText("cgutierrez@chmd.edu.mx")
+        //txtPassword.setText("auxiliar2012")
         //txtEmail.setText("ocana@chmd.edu.mx")
         //txtPassword.setText("auxiliar1997")
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1)
+        }
+
 
         loginViewModel = ViewModelProvider(this)[LoginViewModel::class.java]
         rutaViewModel = ViewModelProvider(this)[RutaViewModel::class.java]
@@ -123,7 +139,8 @@ class MainActivity : AppCompatActivity() {
         val db = TransporteDB.getInstance(this.application)
         val call = iTransporteService.getAsistenciaMan(idRuta)
         CoroutineScope(Dispatchers.IO).launch {
-            db.iAsistenciaDAO.eliminaAsistencia(idRuta)
+            //db.iAsistenciaDAO.eliminaAsistencia(idRuta)
+            db.iAsistenciaDAO.eliminaAsistenciaCompleta()
         }
         call.enqueue(object:Callback<List<Asistencia>>{
             override fun onResponse(
@@ -175,7 +192,7 @@ class MainActivity : AppCompatActivity() {
         val db = TransporteDB.getInstance(this.application)
         val call = iTransporteService.getAsistenciaTar(idRuta)
         CoroutineScope(Dispatchers.IO).launch {
-            db.iAsistenciaDAO.eliminaAsistencia(idRuta)
+            db.iAsistenciaDAO.eliminaAsistenciaCompleta()
         }
         call.enqueue(object:Callback<List<Asistencia>>{
             override fun onResponse(
@@ -242,6 +259,9 @@ class MainActivity : AppCompatActivity() {
     suspend fun getRutasAsignadas(aux_id:String){
         val db = TransporteDB.getInstance(this.application)
         val call = iTransporteService.getRutaTransporte(aux_id)
+        val editor:SharedPreferences.Editor = sharedPreferences!!.edit()
+        editor.putString("aux_id",aux_id)
+        editor.apply()
         CoroutineScope(Dispatchers.IO).launch {
             db.iRutaDAO.delete()
         }

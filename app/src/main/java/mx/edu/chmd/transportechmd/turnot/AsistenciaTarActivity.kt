@@ -8,6 +8,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.graphics.Typeface
+import android.location.Location
 import android.net.ConnectivityManager
 import android.nfc.*
 import android.nfc.tech.*
@@ -36,6 +37,7 @@ import mx.edu.chmd.transportechmd.SeleccionRutaActivity
 import mx.edu.chmd.transportechmd.adapter.AsistenciaItemTarAdapter
 import mx.edu.chmd.transportechmd.db.AsistenciaDAO
 import mx.edu.chmd.transportechmd.db.TransporteDB
+import mx.edu.chmd.transportechmd.location.Locator
 import mx.edu.chmd.transportechmd.model.Asistencia
 import mx.edu.chmd.transportechmd.model.Comentario
 import mx.edu.chmd.transportechmd.networking.ITransporte
@@ -92,6 +94,7 @@ class AsistenciaTarActivity : AppCompatActivity() {
         unregisterReceiver(networkChangeReceiver)
     }
     var id_ruta:String=""
+    var aux_id:String=""
     public override fun onResume() {
         super.onResume()
         getAsistencia(id_ruta)
@@ -211,6 +214,7 @@ class AsistenciaTarActivity : AppCompatActivity() {
         asistenciaViewModel = ViewModelProvider(this)[AsistenciaViewModel::class.java]
         rutaViewModel = ViewModelProvider(this)[RutaViewModel::class.java]
         val db = TransporteDB.getInstance(this.application)
+        aux_id = sharedPreferences!!.getString("aux_id","")!!
         iTransporte = TransporteAPI.getCHMDService()!!
         nfcDecrypt = NFCDecrypt()
         val tf = Typeface.createFromAsset(getAssets(),"fonts/Nunito-Bold.ttf")
@@ -223,7 +227,23 @@ class AsistenciaTarActivity : AppCompatActivity() {
         lblInasist.typeface = tf
         lblTotalInasist.typeface = tf
         lblTotales.typeface = tf
+        if(hayConexion()){
+            Locator(this, object: Locator.ILocationCallBack{
+                override fun permissionDenied() {
+                    Log.i("Location", "permission  denied")
+                }
 
+                override fun locationSettingFailed() {
+                    Log.i("Location", "setting failed")
+                }
+
+                override fun getLocation(location: Location) {
+                    //Enviar la localización al server
+                    enviarRecorrido(id_ruta,aux_id,location.latitude.toString(),location.longitude.toString(),"0")
+                }
+            })
+
+        }
         //lstAsistencia.clear()
         btnCerrarRegistro.setOnClickListener {
 
@@ -362,6 +382,17 @@ class AsistenciaTarActivity : AppCompatActivity() {
 
         }
         rutaViewModel.cerrarRuta(estatus,id_ruta)
+    }
+
+    fun enviarRecorrido(id_ruta:String,aux_id:String,latitud:String,longitud:String,es_emergencia:String){
+        asistenciaViewModel.enviaRecorridoResultObserver().observe(this){
+            try {
+                Log.d("RECORRIDO", it)
+            }catch (e:Exception){
+
+            }
+        }
+        asistenciaViewModel.enviaRecorrido(id_ruta, aux_id, latitud, longitud, es_emergencia)
     }
 
     fun enviarAsistencia(id_alumno:String, id_ruta: String){

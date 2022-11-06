@@ -8,6 +8,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.graphics.Typeface
+import android.location.Location
 import android.net.ConnectivityManager
 import android.nfc.*
 import android.nfc.tech.*
@@ -35,6 +36,7 @@ import mx.edu.chmd.transportechmd.SeleccionRutaActivity
 import mx.edu.chmd.transportechmd.adapter.AsistenciaBajarItemTarAdapter
 import mx.edu.chmd.transportechmd.db.AsistenciaDAO
 import mx.edu.chmd.transportechmd.db.TransporteDB
+import mx.edu.chmd.transportechmd.location.Locator
 import mx.edu.chmd.transportechmd.model.Asistencia
 import mx.edu.chmd.transportechmd.model.Comentario
 import mx.edu.chmd.transportechmd.networking.ITransporte
@@ -57,6 +59,7 @@ class AsistenciaTarDropActivity : AppCompatActivity() {
     private var nfcAdapter: NfcAdapter? = null
     private lateinit var nfcDecrypt: NFCDecrypt
     var id_ruta:String=""
+    var aux_id:String=""
     lateinit var iTransporte: ITransporte
     private var networkChangeReceiver: NetworkChangeReceiver = NetworkChangeReceiver()
     private val techList = arrayOf(
@@ -204,6 +207,7 @@ class AsistenciaTarDropActivity : AppCompatActivity() {
         setContentView(R.layout.activity_asistencia_tar_drop)
         val SHARED:String=getString(R.string.spref)
         val db = TransporteDB.getInstance(this.application)
+
         sharedPreferences = getSharedPreferences(SHARED, 0)
         val toolbar =
             findViewById<Toolbar>(R.id.tool_bar) // Attaching the layout to the toolbar object
@@ -214,13 +218,30 @@ class AsistenciaTarDropActivity : AppCompatActivity() {
         rutaViewModel = ViewModelProvider(this)[RutaViewModel::class.java]
         val tf = Typeface.createFromAsset(getAssets(),"fonts/Nunito-Bold.ttf")
         id_ruta = sharedPreferences!!.getString("idRuta","0").toString()
+        aux_id = sharedPreferences!!.getString("aux_id","")!!
         val nomRuta = sharedPreferences!!.getString("nomRuta","--").toString()
         lblRuta.setText(nomRuta)
         lblRuta.typeface = tf
         btnCerrarRegistro.typeface = tf
         lblAscDesc.typeface = tf
         lblTotales.typeface = tf
+        if(hayConexion()){
+            Locator(this, object: Locator.ILocationCallBack{
+                override fun permissionDenied() {
+                    Log.i("Location", "permission  denied")
+                }
 
+                override fun locationSettingFailed() {
+                    Log.i("Location", "setting failed")
+                }
+
+                override fun getLocation(location: Location) {
+                    //Enviar la localización al server
+                    enviarRecorrido(id_ruta,aux_id,location.latitude.toString(),location.longitude.toString(),"0")
+                }
+            })
+
+        }
         //lstAsistencia.clear()
         btnCerrarRegistro.setOnClickListener {
 
@@ -354,6 +375,16 @@ class AsistenciaTarDropActivity : AppCompatActivity() {
         rutaViewModel.cerrarRuta(estatus,id_ruta)
     }
 
+    fun enviarRecorrido(id_ruta:String,aux_id:String,latitud:String,longitud:String,es_emergencia:String){
+        asistenciaViewModel.enviaRecorridoResultObserver().observe(this){
+            try {
+                Log.d("RECORRIDO", it)
+            }catch (e:Exception){
+
+            }
+        }
+        asistenciaViewModel.enviaRecorrido(id_ruta, aux_id, latitud, longitud, es_emergencia)
+    }
 
     fun enviarBajada(id_alumno:String, id_ruta: String){
         asistenciaViewModel.getAlumnoAsistenciaResultObserver().observe(this){result->

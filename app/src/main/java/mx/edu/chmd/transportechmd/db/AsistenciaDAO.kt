@@ -134,6 +134,9 @@ class AsistenciaDAO(
         @Query("DELETE FROM $TABLE_NAME WHERE idRuta=:idRuta")
         fun eliminaAsistencia(idRuta:String)
 
+        @Query("DELETE FROM $TABLE_NAME")
+        fun eliminaAsistenciaCompleta()
+
         //Procesamiento offline
         @Query("SELECT * FROM $TABLE_NAME WHERE procesado=-1")
         fun getAsistenciaSP():List<AsistenciaDAO>

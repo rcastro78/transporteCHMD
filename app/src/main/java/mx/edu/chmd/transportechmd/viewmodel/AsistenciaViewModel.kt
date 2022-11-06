@@ -19,6 +19,7 @@ class AsistenciaViewModel: ViewModel() {
     var alumnoInasistenciaResultData: MutableLiveData<String>
     var alumnoReiniciaAsistenciaResultData: MutableLiveData<String>
     var asistenciaCompletaResultData: MutableLiveData<String>
+    var enviarRecorridoResultData: MutableLiveData<String>
     var comentarioResultData: MutableLiveData<Comentario>
     private var iTransporteService: ITransporte
 
@@ -31,6 +32,7 @@ class AsistenciaViewModel: ViewModel() {
         alumnoProcesadoTarResultData = MutableLiveData()
         alumnoBajaResultData = MutableLiveData()
         comentarioResultData = MutableLiveData()
+        enviarRecorridoResultData = MutableLiveData()
         iTransporteService = TransporteAPI.getCHMDService()!!
     }
 
@@ -50,8 +52,30 @@ class AsistenciaViewModel: ViewModel() {
         return alumnoInasistenciaResultData
     }
 
+    fun enviaRecorridoResultObserver(): MutableLiveData<String> {
+        return enviarRecorridoResultData
+    }
+
     fun getComentarioResultObserver(): MutableLiveData<Comentario> {
         return comentarioResultData
+    }
+
+    fun enviaRecorrido(id_ruta:String,aux_id:String,latitud:String,longitud:String,es_emergencia:String){
+        val call = iTransporteService.enviarRuta(id_ruta,aux_id,latitud,longitud,es_emergencia)
+        call.enqueue(object : Callback<String> {
+            override fun onResponse(call: Call<String>, response: Response<String>) {
+                if (response != null) {
+                    enviarRecorridoResultData.postValue(response.body())
+                }
+
+            }
+
+            override fun onFailure(call: Call<String>, t: Throwable) {
+                enviarRecorridoResultData.postValue(null)
+                Log.d("ERROR-DSG", t.localizedMessage)
+            }
+
+        })
     }
 
     fun enviaAsistenciaAlumnoMan(id_alumno: String, id_ruta: String) {

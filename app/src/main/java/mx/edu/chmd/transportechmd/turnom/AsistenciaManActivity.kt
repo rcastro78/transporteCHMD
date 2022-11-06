@@ -1,5 +1,6 @@
 package mx.edu.chmd.transportechmd.turnom
 
+//import com.robin.locationgetter.EasyLocation
 import android.app.AlertDialog
 import android.app.Dialog
 import android.app.PendingIntent
@@ -8,6 +9,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.graphics.Typeface
+import android.location.Location
 import android.net.ConnectivityManager
 import android.nfc.*
 import android.nfc.tech.*
@@ -34,6 +36,7 @@ import mx.edu.chmd.transportechmd.R
 import mx.edu.chmd.transportechmd.adapter.AsistenciaItemAdapter
 import mx.edu.chmd.transportechmd.db.AsistenciaDAO
 import mx.edu.chmd.transportechmd.db.TransporteDB
+import mx.edu.chmd.transportechmd.location.Locator
 import mx.edu.chmd.transportechmd.model.Asistencia
 import mx.edu.chmd.transportechmd.model.Comentario
 import mx.edu.chmd.transportechmd.networking.ITransporte
@@ -51,6 +54,7 @@ import retrofit2.Response
 
 
 class AsistenciaManActivity : AppCompatActivity() {
+
     var lstAsistencia:ArrayList<Asistencia> = ArrayList()
     var adapter:AsistenciaItemAdapter = AsistenciaItemAdapter()
     private lateinit var nfcDecrypt:NFCDecrypt
@@ -59,8 +63,11 @@ class AsistenciaManActivity : AppCompatActivity() {
     lateinit var iTransporte: ITransporte
     private var sharedPreferences: SharedPreferences? = null
     var id_ruta:String=""
+    var aux_id:String=""
     private var nfcAdapter: NfcAdapter? = null
     private var networkChangeReceiver: NetworkChangeReceiver = NetworkChangeReceiver()
+
+
     private val techList = arrayOf(
         arrayOf(
             NfcA::class.java.name,
@@ -74,6 +81,7 @@ class AsistenciaManActivity : AppCompatActivity() {
     )
     override fun onStart() {
         super.onStart()
+
         val filter = IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
         registerReceiver(networkChangeReceiver, filter)
     }
@@ -81,11 +89,13 @@ class AsistenciaManActivity : AppCompatActivity() {
     override fun onStop() {
         super.onStop()
         unregisterReceiver(networkChangeReceiver)
+
     }
 
     override fun onPause() {
         super.onPause()
         lstAsistencia.clear()
+
 
 
         val manager = getSystemService(Context.NFC_SERVICE) as NfcManager
@@ -98,6 +108,8 @@ class AsistenciaManActivity : AppCompatActivity() {
     public override fun onResume() {
         super.onResume()
         getAsistencia(id_ruta)
+
+
 
         //******************************
         //INICIO LECTURA NFC
@@ -211,7 +223,11 @@ class AsistenciaManActivity : AppCompatActivity() {
         setContentView(R.layout.activity_asistencia_man)
         val SHARED:String=getString(R.string.spref)
         sharedPreferences = getSharedPreferences(SHARED, 0)
+        aux_id = sharedPreferences!!.getString("aux_id","")!!
         val db = TransporteDB.getInstance(application)
+
+
+
         val toolbar =
             findViewById<Toolbar>(R.id.tool_bar) // Attaching the layout to the toolbar object
         setSupportActionBar(toolbar)
@@ -220,6 +236,11 @@ class AsistenciaManActivity : AppCompatActivity() {
 
         asistenciaViewModel = ViewModelProvider(this)[AsistenciaViewModel::class.java]
         rutaViewModel = ViewModelProvider(this)[RutaViewModel::class.java]
+
+
+
+
+
         val tf = Typeface.createFromAsset(getAssets(),"fonts/Nunito-Bold.ttf")
         id_ruta = sharedPreferences!!.getString("idRuta","0").toString()
         val nomRuta = sharedPreferences!!.getString("nomRuta","--").toString()
@@ -232,6 +253,25 @@ class AsistenciaManActivity : AppCompatActivity() {
         lblTotales.typeface = tf
 
         //lstAsistencia.clear()
+
+        if(hayConexion()){
+            Locator(this, object: Locator.ILocationCallBack{
+                override fun permissionDenied() {
+                    Log.i("Location", "permission  denied")
+                }
+
+                override fun locationSettingFailed() {
+                    Log.i("Location", "setting failed")
+                }
+
+                override fun getLocation(location: Location) {
+                    //Enviar la localización al server
+                    enviarRecorrido(id_ruta,aux_id,location.latitude.toString(),location.longitude.toString(),"0")
+                }
+            })
+
+        }
+
         btnCerrarRegistro.setOnClickListener {
             AlertDialog.Builder(this)
                 .setTitle("CHMD - Transporte")
@@ -371,6 +411,18 @@ class AsistenciaManActivity : AppCompatActivity() {
     fun recrear(){
         finish()
         startActivity(intent)
+    }
+
+
+    fun enviarRecorrido(id_ruta:String,aux_id:String,latitud:String,longitud:String,es_emergencia:String){
+        asistenciaViewModel.enviaRecorridoResultObserver().observe(this){
+            try {
+                Log.d("RECORRIDO", it)
+            }catch (e:Exception){
+
+            }
+        }
+        asistenciaViewModel.enviaRecorrido(id_ruta, aux_id, latitud, longitud, es_emergencia)
     }
 
     fun reiniciarAsistencia(id_alumno:String, id_ruta: String){
@@ -694,4 +746,7 @@ class AsistenciaManActivity : AppCompatActivity() {
         return netInfo != null && netInfo.isConnectedOrConnecting
 
     }
+
+
+
 }

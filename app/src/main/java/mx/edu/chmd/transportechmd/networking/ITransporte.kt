@@ -89,13 +89,13 @@ interface ITransporte {
     //Postear recorrido
     //0->no es emergencia
     //1->es emergencia
-    @FormUrlEncoded
-    @POST("enviaRuta.php")
+
+    @GET("enviaRuta.php")
     fun enviarRuta(
-        @Field("id_ruta") idRuta: String?, @Field("aux_id") aux_id: String?,
-        @Field("latitud") latitud: String?, @Field("longitud") longitud: String?,
-        @Field("es_emergencia") emergencia: String?
-    ): Call<String?>?
+        @Query("id_ruta") idRuta: String?, @Query("aux_id") aux_id: String?,
+        @Query("latitud") latitud: String?, @Query("longitud") longitud: String?,
+        @Query("es_emergencia") emergencia: String?
+    ): Call<String>
 
 
 
