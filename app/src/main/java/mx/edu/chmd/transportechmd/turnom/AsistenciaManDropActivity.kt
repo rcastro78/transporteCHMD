@@ -39,6 +39,7 @@ import mx.edu.chmd.transportechmd.model.Asistencia
 import mx.edu.chmd.transportechmd.model.Comentario
 import mx.edu.chmd.transportechmd.networking.ITransporte
 import mx.edu.chmd.transportechmd.networking.TransporteAPI
+import mx.edu.chmd.transportechmd.servicios.LocalizacionService
 import mx.edu.chmd.transportechmd.servicios.NetworkChangeReceiver
 import mx.edu.chmd.transportechmd.utils.NFCDecrypt
 import mx.edu.chmd.transportechmd.viewmodel.AsistenciaViewModel
@@ -254,6 +255,7 @@ class AsistenciaManDropActivity : AppCompatActivity() {
 
                     val db = TransporteDB.getInstance(this.application)
                     //cerrar registro en la base, ponerle estatus=1
+                    stopService(Intent(this@AsistenciaManDropActivity, LocalizacionService::class.java))
                     CoroutineScope(Dispatchers.IO).launch {
                         db.iRutaDAO.cambiaEstatusRuta("2",id_ruta)
                     }

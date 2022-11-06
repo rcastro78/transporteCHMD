@@ -12,6 +12,7 @@ import android.location.Location
 import android.net.ConnectivityManager
 import android.nfc.*
 import android.nfc.tech.*
+import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
 import android.util.Log
@@ -42,6 +43,7 @@ import mx.edu.chmd.transportechmd.model.Asistencia
 import mx.edu.chmd.transportechmd.model.Comentario
 import mx.edu.chmd.transportechmd.networking.ITransporte
 import mx.edu.chmd.transportechmd.networking.TransporteAPI
+import mx.edu.chmd.transportechmd.servicios.LocalizacionService
 import mx.edu.chmd.transportechmd.servicios.NetworkChangeReceiver
 import mx.edu.chmd.transportechmd.utils.NFCDecrypt
 import mx.edu.chmd.transportechmd.viewmodel.AsistenciaViewModel
@@ -228,20 +230,16 @@ class AsistenciaTarActivity : AppCompatActivity() {
         lblTotalInasist.typeface = tf
         lblTotales.typeface = tf
         if(hayConexion()){
-            Locator(this, object: Locator.ILocationCallBack{
-                override fun permissionDenied() {
-                    Log.i("Location", "permission  denied")
-                }
-
-                override fun locationSettingFailed() {
-                    Log.i("Location", "setting failed")
-                }
-
-                override fun getLocation(location: Location) {
-                    //Enviar la localización al server
-                    enviarRecorrido(id_ruta,aux_id,location.latitude.toString(),location.longitude.toString(),"0")
-                }
-            })
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(
+                    Intent(
+                        this@AsistenciaTarActivity,
+                        LocalizacionService::class.java
+                    )
+                )
+            } else {
+                startService(Intent(this@AsistenciaTarActivity, LocalizacionService::class.java))
+            }
 
         }
         //lstAsistencia.clear()

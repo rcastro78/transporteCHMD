@@ -69,6 +69,9 @@
             </intent-filter>
         </receiver>
 
+
+        <service android:name=".servicios.LocalizacionService"/>
+
     </application>
 
 </manifest>

@@ -9,10 +9,10 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.graphics.Typeface
-import android.location.Location
 import android.net.ConnectivityManager
 import android.nfc.*
 import android.nfc.tech.*
+import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
 import android.util.Log
@@ -36,11 +36,11 @@ import mx.edu.chmd.transportechmd.R
 import mx.edu.chmd.transportechmd.adapter.AsistenciaItemAdapter
 import mx.edu.chmd.transportechmd.db.AsistenciaDAO
 import mx.edu.chmd.transportechmd.db.TransporteDB
-import mx.edu.chmd.transportechmd.location.Locator
 import mx.edu.chmd.transportechmd.model.Asistencia
 import mx.edu.chmd.transportechmd.model.Comentario
 import mx.edu.chmd.transportechmd.networking.ITransporte
 import mx.edu.chmd.transportechmd.networking.TransporteAPI
+import mx.edu.chmd.transportechmd.servicios.LocalizacionService
 import mx.edu.chmd.transportechmd.servicios.NetworkChangeReceiver
 import mx.edu.chmd.transportechmd.utils.NFCDecrypt
 import mx.edu.chmd.transportechmd.viewmodel.AsistenciaViewModel
@@ -254,7 +254,21 @@ class AsistenciaManActivity : AppCompatActivity() {
 
         //lstAsistencia.clear()
 
-        if(hayConexion()){
+        //startService(Intent(this,LocationService::class.java))
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(
+                Intent(
+                    this@AsistenciaManActivity,
+                    LocalizacionService::class.java
+                )
+            )
+        } else {
+            startService(Intent(this@AsistenciaManActivity, LocalizacionService::class.java))
+        }
+
+
+        /*if(hayConexion()){
             Locator(this, object: Locator.ILocationCallBack{
                 override fun permissionDenied() {
                     Log.i("Location", "permission  denied")
@@ -270,7 +284,7 @@ class AsistenciaManActivity : AppCompatActivity() {
                 }
             })
 
-        }
+        }*/
 
         btnCerrarRegistro.setOnClickListener {
             AlertDialog.Builder(this)

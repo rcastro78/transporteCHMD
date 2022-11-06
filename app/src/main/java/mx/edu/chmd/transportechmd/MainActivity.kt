@@ -71,8 +71,8 @@ class MainActivity : AppCompatActivity() {
         lblHeader.typeface = tf
         btnLogin.typeface = tf
         lblEstado.typeface = tf
-        txtEmail.setText("lnabor@chmd.edu.mx")
-        txtPassword.setText("auxiliar2015")
+        //txtEmail.setText("lnabor@chmd.edu.mx")
+        //txtPassword.setText("auxiliar2015")
         //txtEmail.setText("cgutierrez@chmd.edu.mx")
         //txtPassword.setText("auxiliar2012")
         //txtEmail.setText("ocana@chmd.edu.mx")
